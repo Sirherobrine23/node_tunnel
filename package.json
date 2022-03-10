@@ -1,0 +1,22 @@
+{
+  "name": "@ofvp_project/openssh",
+  "version": "4.0.1",
+  "description": "One of the project servers, this one is for using the ssh tunnel.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OFVp-Project/OpenSSH.git"
+  },
+  "keywords": [
+    "ofvp_project"
+  ],
+  "author": "ofvp_project",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/OFVp-Project/OpenSSH/issues"
+  },
+  "homepage": "https://github.com/OFVp-Project/OpenSSH#readme"
+}
