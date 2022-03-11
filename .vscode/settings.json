@@ -1,0 +1,12 @@
+{
+  "editor.tabSize": 2,
+  "files.autoSaveDelay": 5,
+  "files.autoSave": "afterDelay",
+  "files.eol": "\n",
+  "editor.minimap.enabled": false,
+  "npm-intellisense.importQuotes": "\"",
+  "path-intellisense.extensionOnImport": true,
+  "path-autocomplete.extensionOnImport": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.updateImportsOnFileMove.enabled": "always"
+}

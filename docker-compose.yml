@@ -1,0 +1,55 @@
+version: "3.9"
+volumes:
+  MongoOFVp:
+  ssh_data:
+networks:
+  ofvp_network:
+    # enable_ipv6: true
+services:
+  ofvp_mongodb:
+    container_name: ofvp_mongodb
+    restart: on-failure
+    image: mongo
+    volumes:
+      - MongoOFVp:/data/db
+    networks:
+      - "ofvp_network"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    entrypoint:
+    - "mongod"
+    - "--bind_ip_all"
+    - "--quiet"
+    - "--logpath"
+    - "/dev/null"
+  deamon_maneger:
+    container_name: deamon_maneger
+    restart: on-failure
+    image: ghcr.io/ofvp-project/deamonmaneger:nightly
+    depends_on:
+      - ofvp_mongodb
+    networks:
+      - "ofvp_network"
+    environment:
+      NODE_ENV: "development"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      COOKIE_SECRET: "dev"
+      PASSWORD_ENCRYPT: "dev"
+    ports:
+      - 3000:3000/tcp
+  openssh:
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - deamon_maneger
+    networks:
+      - "ofvp_network"
+    ports:
+      - 2222:22/tcp
+    volumes:
+      - ssh_data:/data
+    environment:
+      DAEMON_HOST: deamon_maneger
