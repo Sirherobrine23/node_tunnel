@@ -17,7 +17,8 @@ socket.on("error", err => {
 
 /** @type {Status: "Connecting"|"Connected"|"Error"; Error: null|Error;} */
 const ConnectionStatusObject = {Status: "Connecting", Error: null};
-socket.on("monngoConnection", console.log);
+socket.onAny(console.log)
+
 socket.on("monngoConnection", status => {
   if (typeof status === "string") {
     ConnectionStatusObject.Status = status;
