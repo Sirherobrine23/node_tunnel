@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    assignees:
+      - Sirherobrine23
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    assignees:
+      - Sirherobrine23
+    schedule:
+      interval: "daily"

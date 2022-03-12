@@ -36,7 +36,7 @@ RUN apt update && apt install -y openssh-server && rm -fv /etc/ssh/sshd_config /
 
 # Setup Project
 WORKDIR /usr/src/Backend
-ENV DAEMON_PASSWORD="" DAEMON_USER="" DAEMON_HOST="localhost"
+ENV DAEMON_PASSWORD="" DAEMON_USER="" DAEMON_HOST="http://localhost:5000"
 EXPOSE 22/tcp
 VOLUME [ "/data" ]
 ENTRYPOINT [ "node", "--trace-warnings", "src/index.js" ]
