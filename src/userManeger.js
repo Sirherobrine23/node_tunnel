@@ -125,10 +125,10 @@ socket.on("userOnDescrypt", userOn);
  */
 async function userOn(operationType, data) {
   if (operationType === "delete") await removeUser(data.username);
-  else if (operationType === "insert") await addUser(data.username, data.password, data.expire);
+  else if (operationType === "insert") await addUser(data.username, data.password, new Date(data.expire));
   else if (operationType === "update") {
     await removeUser(data.username);
-    await addUser(data.username, data.password, data.expire);
+    await addUser(data.username, data.password, new Date(data.expire));
   }
 }
 
@@ -141,7 +141,7 @@ async function loadUser(data) {
   console.info(`(re)loadig users!`);
   for (const user of data) {
     try {
-      await addUser(user.username, user.password, user.expire);
+      await addUser(user.username, user.password, new Date(user.expire));
       console.log("Sucess in add user:", user.username);
     } catch (err){
       console.error("Error in add user:", user.username);
@@ -152,7 +152,7 @@ async function loadUser(data) {
 
 /** @type {Array<typeUser} */
 let users = [];
-socket.on("usersDecrypt", data => users = data);
+socket.on("usersDecrypt", data => users = data.map(User => {User.expire = new Date(User.expire); return User;}));
 
 setInterval(async () => {
   const CurrentProcess = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
@@ -161,6 +161,7 @@ setInterval(async () => {
       const SSH_Connections = CurrentProcess.filter(a => a.user === User.username);
       if (User.ssh.connections > SSH_Connections.length) {
         for (const Process of SSH_Connections.reverse().slice(-(SSH_Connections.length - User.ssh.connections))) {
+          console.log(`Killing ${Process.pid}, user "${User.username}"`);
           Process.KillProcess();
         }
       }
