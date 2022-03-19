@@ -1,6 +1,5 @@
 const {socket} = require("./daemonConnect");
 const child_process = require("child_process");
-const crypto = require("crypto");
 const systeminformation = require("systeminformation");
 
 /**
@@ -94,8 +93,7 @@ async function addUser(username, password, ExpireDate) {
     Add: false,
     Error: "Password must be at least 5 characters"
   };
-  const PerlPass = crypto.createHash("md5").update(password).digest("hex");
-  // const PerlPass = (await execFilePromise("perl", ["-e", "print crypt($ARGV[0], \"password\")", password])).stdout;
+  const PerlPass = (await execFilePromise("perl", ["-e", "print crypt($ARGV[0], \"password\")", password])).stdout;
   const DateToExpire = `${ExpireDate.getFullYear()}-${(ExpireDate.getMonth() + 1) <= 9 ? "0"+(ExpireDate.getMonth() + 1):(ExpireDate.getMonth() + 1)}-${ExpireDate.getDate() <= 9 ? "0"+ExpireDate.getDate():ExpireDate.getDate()}`;
   await execFilePromise("useradd", ["-e", DateToExpire, "-M", "-s", "/bin/false", "-p", PerlPass, username]);
   return;
@@ -125,7 +123,6 @@ socket.on("userOnDescrypt", userOn);
  */
 async function userOn(operationType, data) {
   if (operationType === "delete") await removeUser(data.username);
-  else if (operationType === "insert") await addUser(data.username, data.password, new Date(data.expire));
   else if (operationType === "update") {
     await removeUser(data.username);
     await addUser(data.username, data.password, new Date(data.expire));
@@ -143,10 +140,7 @@ async function loadUser(data) {
     try {
       await addUser(user.username, user.password, new Date(user.expire));
       console.log("Sucess in add user:", user.username);
-    } catch (err){
-      console.error("Error in add user:", user.username);
-      console.error(err);
-    }
+    } catch (err){}
   }
 }
 
