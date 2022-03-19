@@ -9,7 +9,7 @@ async function StartSshd (Loaddeds_Keys=false) {
   fs.writeFileSync("/etc/ssh/sshd_config", ([
     `Banner ${path.resolve(__dirname, "./banner.html")}`,
     "PasswordAuthentication yes",
-    "PermitRootLogin yes",
+    "PermitRootLogin no",
     "ChallengeResponseAuthentication no",
     "Include /etc/ssh/sshd_config.d/*.conf",
     "UsePAM yes",
@@ -17,7 +17,6 @@ async function StartSshd (Loaddeds_Keys=false) {
     "PrintMotd yes",
     "AcceptEnv LANG LC_*",
     "Subsystem       sftp    /usr/lib/openssh/sftp-server",
-    "LogLevel DEBUG1",
     "",
     "# Ports",
     "",
