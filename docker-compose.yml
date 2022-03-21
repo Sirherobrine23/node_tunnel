@@ -23,28 +23,12 @@ services:
     - "--quiet"
     - "--logpath"
     - "/dev/null"
-  deamon_maneger:
-    container_name: deamon_maneger
-    restart: on-failure
-    image: ghcr.io/ofvp-project/deamonmaneger:latest
-    depends_on:
-      - ofvp_mongodb
-    networks:
-      - "ofvp_network"
-    environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
-      COOKIE_SECRET: "dev"
-      PASSWORD_ENCRYPT: "dev"
-    ports:
-      - 3000:3000/tcp
-  openssh:
+
+  ofvp_openssh:
     restart: on-failure
     build:
       context: .
       dockerfile: Dockerfile
-    depends_on:
-      - deamon_maneger
     networks:
       - "ofvp_network"
     ports:
@@ -52,4 +36,26 @@ services:
     volumes:
       - ssh_data:/data
     environment:
-      DAEMON_HOST: http://deamon_maneger:5000
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+
+  deamon_maneger:
+    container_name: deamon_maneger
+    restart: on-failure
+    image: ghcr.io/ofvp-project/deamonmaneger:latest
+    depends_on:
+      - ofvp_mongodb
+      - ofvp_openssh
+    networks:
+      - "ofvp_network"
+    environment:
+      NODE_ENV: "development"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      COOKIE_SECRET: "dev"
+      PASSWORD_ENCRYPT: "dev"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+      OPENSSH_ENDPOINT_HOST: "ofvp_openssh"
+      OPENSSH_ENDPOINT_PORT: "3002"
+    ports:
+      - 3000:3000/tcp

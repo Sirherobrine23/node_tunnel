@@ -1,23 +1,31 @@
-const { DAEMON_PASSWORD, DAEMON_USER, DAEMON_HOST } = process.env;
-const socket = require("socket.io-client").io(DAEMON_HOST, {
-  auth: {
-    PASSWORD: DAEMON_USER,
-    USER: DAEMON_PASSWORD
-  }
-});
-module.exports.socket = socket;
-
-socket.on("connect", () => console.log("Sockect connected"));
-socket.on("error", err => {
-  console.error("Daemon Socket.io, error:");
-  console.error(err);
-  process.exit(1);
+const express = require("express");
+const app = express();
+app.listen(3002, () => console.log("listening on port 3002 to OpenSSH maneger. dont expose to internet!"));
+const { DAEMON_PASSWORD, DAEMON_USER } = process.env;
+app.use(express.json());
+app.use((req, res, next) => {
+  if (req.headers.daemon_password !== DAEMON_PASSWORD) return res.status(400).json({message: "Wrong password"});
+  if (req.headers.daemon_user !== DAEMON_USER) return res.status(400).json({message: "Wrong user"});
+  next();
 });
 
-module.exports.mongoStatus = mongoStatus;
-async function mongoStatus() {
-  while (true) {
-    if (socket.connected) return;
-    await new Promise(res => setTimeout(res, 500));
+const userManeger = require("./userManeger");
+app.all("/status", ({res}) => res.sendStatus(200));
+app.post("/v1/init", async (req, res) => {
+  const MapUser = req.body.map(User => {
+    User.expire = new Date(User.expire);
+    return User;
+  });
+  userManeger.updateLocaluser(MapUser);
+  await userManeger.loadUser(MapUser);
+  return res.sendStatus(200);
+});
+app.post("/v1/update/:operation", async (req, res) => {
+  if (req.params.operation === "delete") await userManeger.removeUser(req.body.username);
+  else if (req.params.operation === "update") {
+    await userManeger.removeUser(req.body.username);
+    await userManeger.addUser(req.body);
   }
-}
+  res.sendStatus(200);
+});
+app.all("*", ({res}) => res.sendStatus(404));

@@ -1,4 +1,3 @@
-const {socket} = require("./daemonConnect");
 const child_process = require("child_process");
 const systeminformation = require("systeminformation");
 
@@ -73,6 +72,7 @@ const execFilePromise = (cmd, args) => new Promise((resolve, reject) => {
   });
 });
 
+module.exports.addUser = addUser;
 /**
  * 
  * @param {string} username 
@@ -99,6 +99,7 @@ async function addUser(username, password, ExpireDate) {
   return;
 }
 
+module.exports.removeUser = removeUser;
 async function removeUser(username = "") {
   // Checks parameters is valid
   if (!username) throw (new Error("Username is empty"));
@@ -115,21 +116,7 @@ async function removeUser(username = "") {
   return;
 }
 
-socket.on("userOnDescrypt", userOn);
-/**
- * 
- * @param {"delete"|"insert"|"update"} operationType 
- * @param {typeUser} data 
- */
-async function userOn(operationType, data) {
-  if (operationType === "delete") await removeUser(data.username);
-  else if (operationType === "update") {
-    await removeUser(data.username);
-    await addUser(data.username, data.password, new Date(data.expire));
-  }
-}
-
-socket.on("usersDecrypt", loadUser);
+module.exports.loadUser = loadUser;
 /**
  * 
  * @param {Array<typeUser>} data 
@@ -146,27 +133,17 @@ async function loadUser(data) {
 
 /** @type {Array<typeUser} */
 let users = [];
-socket.on("usersDecrypt", data => users = data.map(User => {User.expire = new Date(User.expire); return User;}));
+/** @param {Array<typeUser} data */
+module.exports.updateLocaluser = (data) => users = data;
 
-setInterval(async () => {
-  const CurrentProcess = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
-  for (const User of users) {
-    if (User.ssh.connections !== 0) {
-      const SSH_Connections = CurrentProcess.filter(a => a.user === User.username);
-      if (User.ssh.connections > SSH_Connections.length) {
-        for (const Process of SSH_Connections.reverse().slice(-(SSH_Connections.length - User.ssh.connections))) {
-          console.log(`Killing ${Process.pid}, user "${User.username}"`);
-          Process.KillProcess();
-        }
-      }
-    }
-  }
-}, 1000);
-setInterval(async () => socket.emit("ssh_monitor", await SshMonitor()), 3*1000);
-async function SshMonitor() {
+/** @type {Array<{Username: string; expire: string; Max_Connections: number; connections: Array<{CPU: number; Started: string; TimeConnected: {seconds: number; minutes: number; hours: number; days: number; weeks: number; months: number; years: number;};}>;}>} */
+let ssh_monitor = [];
+module.exports.ssh_monitor = () => ssh_monitor;
+
+setInterval(async function (){
   const CurrentDate = new Date();
   const Current_Process = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
-  return users.map(User => {
+  ssh_monitor = users.map(User => {
     const SSH_Connections = Current_Process.filter(a => a.user === User.username);
     const Ssh = {
       Username: User.username,
@@ -186,4 +163,19 @@ async function SshMonitor() {
     }
     return Ssh;
   });
-}
+}, 1000);
+
+setInterval(async () => {
+  const CurrentProcess = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
+  for (const User of users) {
+    if (User.ssh.connections !== 0) {
+      const SSH_Connections = CurrentProcess.filter(a => a.user === User.username);
+      if (User.ssh.connections > SSH_Connections.length) {
+        for (const Process of SSH_Connections.reverse().slice(-(SSH_Connections.length - User.ssh.connections))) {
+          console.log(`Killing ${Process.pid}, user "${User.username}"`);
+          Process.KillProcess();
+        }
+      }
+    }
+  }
+}, 1000);
