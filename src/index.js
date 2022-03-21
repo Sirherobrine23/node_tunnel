@@ -2,7 +2,7 @@
 const child_process = require("child_process");
 const path = require("path");
 const fs = require("fs");
-
+require("./daemonConnect");
 async function StartSshd (Loaddeds_Keys=false) {
   if (!(fs.existsSync("/run/sshd"))) fs.mkdirSync("/run/sshd");
   // Write SSH Config
