@@ -24,6 +24,24 @@ services:
     - "--logpath"
     - "/dev/null"
 
+  deamon_maneger:
+    container_name: deamon_maneger
+    restart: on-failure
+    image: ghcr.io/ofvp-project/deamonmaneger:latest
+    depends_on:
+      - ofvp_mongodb
+    networks:
+      - "ofvp_network"
+    environment:
+      NODE_ENV: "development"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      COOKIE_SECRET: "dev"
+      PASSWORD_ENCRYPT: "dev"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+    ports:
+      - 3000:3000/tcp
+
   ofvp_openssh:
     restart: on-failure
     build:
@@ -35,27 +53,9 @@ services:
       - 2222:22/tcp
     volumes:
       - ssh_data:/data
-    environment:
-      DAEMON_PASSWORD: "dev"
-      DAEMON_USER: "dev"
-
-  deamon_maneger:
-    container_name: deamon_maneger
-    restart: on-failure
-    image: ghcr.io/ofvp-project/deamonmaneger:latest
     depends_on:
-      - ofvp_mongodb
-      - ofvp_openssh
-    networks:
-      - "ofvp_network"
+      - deamon_maneger
     environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
-      COOKIE_SECRET: "dev"
-      PASSWORD_ENCRYPT: "dev"
       DAEMON_PASSWORD: "dev"
       DAEMON_USER: "dev"
-      OPENSSH_ENDPOINT_HOST: "ofvp_openssh"
-      OPENSSH_ENDPOINT_PORT: "3002"
-    ports:
-      - 3000:3000/tcp
+      DAEMON_HOST: "http://deamon_maneger:5000"
