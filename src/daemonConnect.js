@@ -1,32 +1,27 @@
-const express = require("express");
-const app = express();
-app.listen(3002, () => console.log("listening on port 3002 to OpenSSH maneger. dont expose to internet!"));
-const { DAEMON_PASSWORD, DAEMON_USER } = process.env;
-app.use(express.json());
-app.use((req, res, next) => {
-  console.log(req.headers.daemon_user, req.headers.daemon_password);
-  if (req.headers.daemon_password !== DAEMON_PASSWORD) return res.status(400).json({message: "Wrong password"});
-  if (req.headers.daemon_user !== DAEMON_USER) return res.status(400).json({message: "Wrong user"});
-  next();
+const { DAEMON_PASSWORD, DAEMON_USER, DAEMON_HOST } = process.env;
+const io = (require("socket.io-client")).io(DAEMON_HOST, {auth: {username: DAEMON_USER, password: DAEMON_PASSWORD}});
+io.on("conneted", () => console.info("Connected to daemon"));
+io.on("disconnect", () => console.info("Disconnected from daemon"));
+io.on("error", err => {
+  console.info("Error to connect to daemon");
+  console.info(err);
+  process.exit(2);
 });
 
-const userManeger = require("./userManeger");
-app.all("/status", ({res}) => res.sendStatus(200));
-app.post("/v1/init", async (req, res) => {
-  const MapUser = req.body.map(User => {
+io.on("users", users => {
+  users = users.map(User => {
     User.expire = new Date(User.expire);
     return User;
-  });
-  userManeger.updateLocaluser(MapUser);
-  await userManeger.loadUser(MapUser);
-  return res.sendStatus(200);
+  })
+  const userManeger = require("./userManeger");
+  userManeger.updateLocaluser(users);
+  userManeger.loadUser(users);
 });
-app.post("/v1/update/:operation", async (req, res) => {
-  if (req.params.operation === "delete") await userManeger.removeUser(req.body.username);
-  else if (req.params.operation === "update") {
-    await userManeger.removeUser(req.body.username);
-    await userManeger.addUser(req.body);
+io.on("userUpdate", (operationType, document) => {
+  const userManeger = require("./userManeger");
+  if (operationType === "delete") userManeger.removeUser(document.username);
+  else if (operationType === "update") {
+    userManeger.removeUser(document.username);
+    userManeger.addUser(document.username, document.password, new Date(document.expire));
   }
-  res.sendStatus(200);
 });
-app.all("*", ({res}) => res.sendStatus(404));

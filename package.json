@@ -17,9 +17,8 @@
   },
   "homepage": "https://github.com/OFVp-Project/OpenSSH#readme",
   "dependencies": {
-    "cors": "^2.8.5",
     "cron": "^1.8.2",
-    "express": "^4.17.3",
+    "socket.io-client": "^4.4.1",
     "systeminformation": "^5.11.9"
   }
 }
