@@ -4,6 +4,11 @@ on:
     types:
       - created
 
+env:
+  # DOCKERPLATFORM: "linux/amd64,linux/arm64"
+  DOCKERPLATFORM: "linux/amd64,linux/arm64,linux/ppc64le,linux/s390x"
+  DOCKERIMAGE: "ghcr.io/ofvp-project/openssh"
+
 jobs:
   latestDeploy:
     runs-on: ubuntu-latest
@@ -38,7 +43,7 @@ jobs:
           context: .
           push: true
           target: server
-          tags: ghcr.io/ofvp-project/openssh:${{ env.PACKAGE_VERSION }}
-          platforms: "linux/amd64,linux/arm64"
-          cache-from: type=gha,scope=${{ hashFiles('**/package-lock.json') }}
-          cache-to: type=gha,mode=max,scope=${{ hashFiles('**/package-lock.json') }}
+          tags: ${{ env.DOCKERIMAGE }}:${{ env.PACKAGE_VERSION }}
+          platforms: ${{ env.DOCKERPLATFORM }}
+          cache-from: type=gha,scope=${{ github.ref }}_${{ hashFiles('**/package-lock.json') }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref }}_${{ hashFiles('**/package-lock.json') }}
