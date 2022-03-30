@@ -30,13 +30,14 @@ COPY --from=downloadnode /tmp/nodebin/ /usr
 RUN apt update && apt install -y openssh-server && rm -fv /etc/ssh/sshd_config /etc/ssh/ssh_host_* && npm -g install npm@latest
 
 # Setup Project
-WORKDIR /usr/src/Backend
 ENV DAEMON_PASSWORD=""
 ENV DAEMON_USER=""
 ENV DAEMON_HOST="http://localhost:5000"
 EXPOSE 22/tcp
 VOLUME [ "/data" ]
-ENTRYPOINT [ "node", "--trace-warnings", "src/index.js" ]
+WORKDIR /app
+ENTRYPOINT [ "node", "--trace-warnings", "dist/index.js" ]
 COPY package*.json ./
 RUN npm install --no-save
 COPY ./ ./
+RUN npm run build

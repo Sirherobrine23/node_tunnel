@@ -1,9 +1,8 @@
-#!/usr/bin/env node
-const child_process = require("child_process");
-const path = require("path");
-const fs = require("fs");
-require("./daemonConnect");
-async function StartSshd (Loaddeds_Keys=false) {
+import fs from "fs";
+import path from "path";
+import child_process from "child_process";
+
+export async function StartSshd (Loaddeds_Keys=false) {
   if (!(fs.existsSync("/run/sshd"))) fs.mkdirSync("/run/sshd");
   // Write SSH Config
   fs.writeFileSync("/etc/ssh/sshd_config", ([
@@ -16,7 +15,6 @@ async function StartSshd (Loaddeds_Keys=false) {
     "X11Forwarding no",
     "PrintMotd yes",
     "AcceptEnv LANG LC_*",
-    "Subsystem       sftp    /usr/lib/openssh/sftp-server",
     "",
     "# Ports",
     "",
@@ -39,11 +37,10 @@ async function StartSshd (Loaddeds_Keys=false) {
       });
     }
   }
-  const SSHProcess = child_process.exec("/usr/sbin/sshd -D -f /etc/ssh/sshd_config");
+  const SSHProcess = child_process.exec("/usr/sbin/sshd -D -d -f /etc/ssh/sshd_config", {maxBuffer: Infinity});
   SSHProcess.on("exit", code => code !== 0 ? StartSshd():null);
-  SSHProcess.stdout.on("data", data => process.stdout.write(data));
-  SSHProcess.stderr.on("data", data => process.stdout.write(data));
+  const logFile = fs.createWriteStream(`/tmp/sshd_${(new Date()).toString().replace(/[-\(\)\:\s+]/gi, "_")}.log`, {flags: "a"});
+  SSHProcess.stdout.pipe(logFile);
+  SSHProcess.stderr.pipe(logFile);
   return;
 }
-StartSshd(true);
-require("./userManeger");
