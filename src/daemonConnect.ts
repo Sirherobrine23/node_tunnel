@@ -4,7 +4,7 @@ import * as userManeger from "./userManeger";
 
 export function StartDaemon() {
   const { DAEMON_PASSWORD, DAEMON_USER, DAEMON_HOST } = process.env;
-  const socketIo = io(DAEMON_HOST, {auth: {username: DAEMON_USER, password: DAEMON_PASSWORD}});
+  const socketIo = io(DAEMON_HOST, {transports: [ "websocket", "polling" ], auth: {username: DAEMON_USER, password: DAEMON_PASSWORD}});
   
   socketIo.on("conneted", () => console.info("Connected to daemon"));
   socketIo.on("disconnect", () => console.info("Disconnected from daemon"));
