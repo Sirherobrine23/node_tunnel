@@ -33,8 +33,7 @@ export async function StartSshd (Loaddeds_Keys=false) {
   if (Loaddeds_Keys) await copyCreateKeys();
   const SSHProcess = child_process.exec("/usr/sbin/sshd -D -d -f /etc/ssh/sshd_config", {maxBuffer: Infinity});
   SSHProcess.on("exit", code => code !== 0 ? StartSshd():null);
-  const logFile = fs.createWriteStream(`/tmp/sshd_${(new Date()).toString().replace(/[-\(\)\:\s+]/gi, "_")}.log`, {flags: "a"});
-  SSHProcess.stdout.pipe(logFile);
-  SSHProcess.stderr.pipe(logFile);
+  SSHProcess.stdout.on("data", data => process.stdout.write(data));
+  SSHProcess.stderr.on("data", data => process.stdout.write(data));
   return;
 }

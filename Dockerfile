@@ -16,8 +16,8 @@ RUN VERSION=$(wget -qO- https://api.github.com/repos/Sirherobrine23/DebianNodejs
 RUN apt update && \
   apt install -y openssh-server && \
   rm -fv /etc/ssh/sshd_config /etc/ssh/ssh_host_* && \
-  ln -s -v /data/ssh_config.conf /etc/ssh/sshd_config && \
-  ln -s -v /data/Banner.html /etc/ssh/banner
+  ln -s -v /app/ssh_config.conf /etc/ssh/sshd_config && \
+  ln -s -v /app/Banner.html /etc/ssh/banner
 
 # Setup Project
 ENV DAEMON_PASSWORD=""
