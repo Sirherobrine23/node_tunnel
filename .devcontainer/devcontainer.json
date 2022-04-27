@@ -1,47 +1,35 @@
 {
-    "name": "ofvpserver",
-    "image": "ghcr.io/ofvp-project/devcontainer:latest",
-    "forwardPorts": [
-      3000
-    ],
-    "hostRequirements": {
-      "cpus": 2,
-      "memory": "2gb",
-      "storage": "128gb"
-    },
-    "postCreateCommand": "npm install --no-save && sudo /etc/init.d/mongodb start",
-    "remoteUser": "gitpod",
-    "runArgs": [
-      "--privileged",
-      "-v", "/var/run/docker.sock:/var/run/docker.sock",
-      "-p", "51820:51820/udp",
-      "-p", "7300:7300/tcp",
-      "-p", "2222:22/tcp"
-    ],
-    "extensions": [
-      "akamud.vscode-theme-onedark",
-      "formulahendry.auto-rename-tag",
-      "hookyqr.beautify",
-      "aaron-bond.better-comments",
-      "wmaurer.change-case",
-      "oouo-diogo-perdigao.docthis",
-      "dbaeumer.vscode-eslint",
-      "me-dutour-mathieu.vscode-github-actions",
-      "github.copilot",
-      "benshabatnoam.google-translate-ext",
-      "oderwat.indent-rainbow",
-      "tgreen7.vs-code-node-require",
-      "eg2.vscode-npm-script",
-      "christian-kohler.npm-intellisense",
-      "ionutvmi.path-autocomplete",
-      "christian-kohler.path-intellisense",
-      "esbenp.prettier-vscode",
-      "rangav.vscode-thunder-client",
-      "visualstudioexptteam.vscodeintellicode",
-      "vscode-icons-team.vscode-icons",
-      "redhat.vscode-yaml",
-      "eamodio.gitlens",
-      "mongodb.mongodb-vscode",
-      "ms-azuretools.vscode-docker"
-    ]
-  }
+  "name": "devContainerBds",
+  "image": "ghcr.io/the-bds-maneger/devcontainer_nodejs",
+  "remoteUser": "devcontainer",
+  "containerUser": "devcontainer",
+  "updateRemoteUserUID": false,
+  "postCreateCommand": "startDocker npm install",
+  "runArgs": [
+    "--init",
+    "--privileged"
+  ],
+  "mounts": [
+    "type=tmpfs,destination=/var/lib/docker"
+  ],
+  "extensions": [
+    "GitHub.copilot-nightly",
+    "GitHub.copilot-labs",
+    "benshabatnoam.google-translate-ext",
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+    "visualstudioexptteam.vscodeintellicode",
+    "redhat.vscode-yaml",
+    "ms-vscode-remote.remote-containers",
+    "wix.vscode-import-cost",
+    "eg2.vscode-npm-script",
+    "christian-kohler.npm-intellisense",
+    "christian-kohler.path-intellisense",
+    "aaron-bond.better-comments",
+    "vscode-icons-team.vscode-icons",
+    "me-dutour-mathieu.vscode-github-actions",
+    "cschleiden.vscode-github-actions",
+    "oderwat.indent-rainbow",
+    "ms-azuretools.vscode-docker"
+  ]
+}
