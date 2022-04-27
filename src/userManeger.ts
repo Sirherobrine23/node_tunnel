@@ -71,7 +71,12 @@ export async function addUser(username: string, password: string, ExpireDate: Da
   if (password.length <= 4) throw new Error("Password must be at least 5 characters");
   const PerlPass = (await execFilePromise("perl", ["-e", "print crypt($ARGV[0], \"password\")", password])).stdout;
   const DateToExpire = `${ExpireDate.getFullYear()}-${(ExpireDate.getMonth() + 1) <= 9 ? "0"+(ExpireDate.getMonth() + 1):(ExpireDate.getMonth() + 1)}-${ExpireDate.getDate() <= 9 ? "0"+ExpireDate.getDate():ExpireDate.getDate()}`;
-  await execFilePromise("useradd", ["-e", DateToExpire, "-M", "-s", "/bin/false", "-p", PerlPass, username]);
+  await execFilePromise("useradd", ["-e", DateToExpire, "-M", "-s", "/bin/false", "-p", PerlPass, username]).catch(async err => {
+     if (/exist/.test(String(err))) {
+       await removeUser(username);
+       return addUser(username, password, ExpireDate);
+     } else throw err;
+  });
   return;
 }
 
