@@ -31,7 +31,7 @@ async function copyCreateKeys() {
 export async function StartSshd (Loaddeds_Keys=false) {
   if (!(fs.existsSync("/run/sshd"))) fs.mkdirSync("/run/sshd");
   if (Loaddeds_Keys) await copyCreateKeys();
-  const SSHProcess = child_process.exec("/usr/sbin/sshd -D -d -f /etc/ssh/sshd_config", {maxBuffer: Infinity});
+  const SSHProcess = child_process.exec("/usr/sbin/sshd -D -f /etc/ssh/sshd_config", {maxBuffer: Infinity});
   SSHProcess.on("exit", code => code !== 0 ? StartSshd():null);
   SSHProcess.stdout.on("data", data => process.stdout.write(data));
   SSHProcess.stderr.on("data", data => process.stdout.write(data));
