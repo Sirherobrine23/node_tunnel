@@ -20,7 +20,7 @@
     "url": "https://github.com/OFVp-Project/OpenSSH/issues"
   },
   "dependencies": {
-    "cron": "^1.8.2",
+    "cron": "^1.8.3",
     "socket.io-client": "^4.5.0",
     "systeminformation": "^5.11.14",
     "typescript": "^4.6.4"
