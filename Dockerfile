@@ -1,3 +1,5 @@
+FROM ghcr.io/ofvp-project/badvpn:latest AS badvpn_prebuilt
+
 FROM debian:latest as server
 LABEL org.opencontainers.image.title="OFVp SSH Server"
 LABEL org.opencontainers.image.description="SSH Server for OFVp"
@@ -18,6 +20,9 @@ RUN apt update && \
   rm -fv /etc/ssh/sshd_config /etc/ssh/ssh_host_* && \
   ln -s -v /app/ssh_config.conf /etc/ssh/sshd_config && \
   ln -s -v /app/Banner.html /etc/ssh/banner
+
+# Copy badvpn
+COPY --from=badvpn_prebuilt /usr/bin/badvpn-udpgw /usr/bin/badvpn
 
 # Setup Project
 ENV DAEMON_PASSWORD=""
