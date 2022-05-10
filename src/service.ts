@@ -28,19 +28,18 @@ async function copyCreateKeys() {
   }
 }
 
-function startBadvpn() {
-    console.log("Starting Badvpn");
-    const badvpnExec = child_process.exec("badvpn --listen-addr 0.0.0.0:7300 --logger stdout --loglevel debug --max-clients 1000 --max-connections-for-client 10", {maxBuffer: Infinity});
-    badvpnExec.stdout.on("data", data => process.stdout.write(data));
-    badvpnExec.stderr.on("data", data => process.stdout.write(data));
-    badvpnExec.on("close", code => {
-      if (code !== 0) {
-        console.log("Badvpn Closed with Code: " + code);
-        process.exit(code);
-      }
-    });
+export function startBadvpn() {
+  console.log("Starting Badvpn");
+  const badvpnExec = child_process.exec("badvpn --listen-addr 0.0.0.0:7300 --logger stdout --loglevel debug --max-clients 1000 --max-connections-for-client 10", {maxBuffer: Infinity});
+  badvpnExec.stdout.on("data", data => process.stdout.write(data));
+  badvpnExec.stderr.on("data", data => process.stdout.write(data));
+  badvpnExec.on("close", code => {
+    if (code !== 0) {
+      console.log("Badvpn Closed with Code: " + code);
+      process.exit(code);
+    }
+  });
 }
-startBadvpn();
 
 export async function StartSshd (Loaddeds_Keys=false) {
   if (!(fs.existsSync("/run/sshd"))) fs.mkdirSync("/run/sshd");

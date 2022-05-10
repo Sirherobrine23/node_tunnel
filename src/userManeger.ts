@@ -2,24 +2,14 @@ import child_process from "child_process";
 import systeminformation from "systeminformation";
 
 export type typeUser = {
-  username: string;
-  expire: Date;
-  password: string|{
-    iv: string;
-    Encrypt: string;
-  };
-  ssh: {connections: number;};
-  wireguard: Array<{
-    keys: {
-      Preshared: string;
-      Private: string;
-      Public: string;
-    };
-    ip: {
-      v4: {ip: string; mask: string;};
-      v6: {ip: string; mask: string;};
-    }
-  }>;
+  UserID: string,
+  Username: string,
+  Expire: Date,
+  maxConnections: number,
+  Password: {
+    Encrypt: string,
+    iv: string
+  }
 };
 
 type SshMonitorType = {
@@ -56,9 +46,22 @@ async function GetProcess() {
   });
 }
 
-function execFilePromise(cmd: string, args?: Array<string>): Promise<{stdout: string, stderr: string}> {
+function execFilePromise(cmd: string, args?: Array<string>, env?: {[key: string]: string}): Promise<{stdout: string, stderr: string}> {
   return new Promise((resolve, reject) => {
-    child_process.execFile(cmd, args, (err, stdout, stderr) => {
+    child_process.execFile(cmd, args, {
+      env: {...process.env, ...(env||{})}
+    }, (err, stdout, stderr) => {
+      if (err) return reject(err);
+      return resolve({stdout, stderr});
+    });
+  });
+}
+
+function execPromise(cmd: string, env?: {[key: string]: string}): Promise<{stdout: string, stderr: string}> {
+  return new Promise((resolve, reject) => {
+    child_process.exec(cmd, {
+      env: {...process.env, ...(env||{})}
+    }, (err, stdout, stderr) => {
       if (err) return reject(err);
       return resolve({stdout, stderr});
     });
@@ -69,13 +72,16 @@ export async function addUser(username: string, password: string, ExpireDate: Da
   if (username.length <= 4) throw new Error("Username must be at least 5 characters");
   if (username.length >= 30) throw new Error("Username must be less than 30 characters");
   if (password.length <= 4) throw new Error("Password must be at least 5 characters");
-  const PerlPass = (await execFilePromise("perl", ["-e", "print crypt($ARGV[0], \"password\")", password])).stdout;
   const DateToExpire = `${ExpireDate.getFullYear()}-${(ExpireDate.getMonth() + 1) <= 9 ? "0"+(ExpireDate.getMonth() + 1):(ExpireDate.getMonth() + 1)}-${ExpireDate.getDate() <= 9 ? "0"+ExpireDate.getDate():ExpireDate.getDate()}`;
-  await execFilePromise("useradd", ["-e", DateToExpire, "-M", "-s", "/bin/false", "-p", PerlPass, username]).catch(async err => {
-     if (/exist/.test(String(err))) {
-       await removeUser(username);
-       return addUser(username, password, ExpireDate);
-     } else throw err;
+  await execFilePromise("useradd", ["-e", DateToExpire, "-M", "-s", "/bin/false", username]).catch(async err => {
+    if (/exist/.test(String(err))) {
+      await removeUser(username);
+      return addUser(username, password, ExpireDate);
+    } else throw err;
+  });
+  await execPromise("(echo $pass;echo $pass)|passwd $username", {
+    pass: password,
+    username: username
   });
   return;
 }
@@ -96,21 +102,15 @@ export async function removeUser(username: string) {
   return;
 }
 
-export function loadUser(data: Array<typeUser>) {
-  for (const user of data) addUser(user.username, String(user.password), new Date(user.expire)).then(() => {});
-}
-
-let users: Array<typeUser> = [];
-export function updateLocaluser(data: Array<typeUser>) {users = data;}
-export async function SshMonitor(): Promise<Array<SshMonitorType>> {
+export async function SshMonitor(users: Array<typeUser>): Promise<Array<SshMonitorType>> {
   const CurrentDate = new Date();
   const Current_Process = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
   return users.map(User => {
-    const SSH_Connections = Current_Process.filter(a => a.user === User.username);
+    const SSH_Connections = Current_Process.filter(a => a.user === User.Username);
     const Ssh = {
-      Username: User.username,
-      expire: User.expire,
-      Max_Connections: User.ssh.connections,
+      Username: User.Username,
+      expire: User.Expire,
+      Max_Connections: User.maxConnections,
       connections: SSH_Connections.map(Process => {
         const calconne = () => {
           const CallD = {};
@@ -133,18 +133,3 @@ export async function SshMonitor(): Promise<Array<SshMonitorType>> {
     return Ssh;
   });
 }
-
-setInterval(async () => {
-  const CurrentProcess = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
-  for (const User of users) {
-    if (User.ssh.connections !== 0) {
-      const SSH_Connections = CurrentProcess.filter(a => a.user === User.username);
-      if (User.ssh.connections > SSH_Connections.length) {
-        for (const Process of SSH_Connections.reverse().slice(-(SSH_Connections.length - User.ssh.connections))) {
-          console.log(`Killing ${Process.pid}, user "${User.username}"`);
-          Process.KillProcess();
-        }
-      }
-    }
-  }
-}, 1000);

@@ -56,6 +56,5 @@ services:
     depends_on:
       - deamon_maneger
     environment:
-      DAEMON_PASSWORD: "dev"
-      DAEMON_USER: "dev"
-      DAEMON_HOST: "http://deamon_maneger:5000"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      PASSWORD_ENCRYPT: "dev"

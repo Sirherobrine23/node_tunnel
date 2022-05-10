@@ -25,9 +25,8 @@ RUN apt update && \
 COPY --from=badvpn_prebuilt /usr/bin/badvpn-udpgw /usr/bin/badvpn
 
 # Setup Project
-ENV DAEMON_PASSWORD=""
-ENV DAEMON_USER=""
-ENV DAEMON_HOST="http://localhost:5000"
+ENV MongoDB_URL="mongodb://localhost:27017/OFVpServer" PASSWORD_ENCRYPT=""
+ENV DONTSTARTBADVPN="false"
 EXPOSE 22/tcp
 VOLUME [ "/data" ]
 WORKDIR /app
