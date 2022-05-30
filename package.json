@@ -22,7 +22,7 @@
   "dependencies": {
     "cron": "^2.0.0",
     "mongoose": "^6.3.4",
-    "systeminformation": "^5.11.15",
+    "systeminformation": "^5.11.16",
     "typescript": "^4.7.2"
   },
   "devDependencies": {
