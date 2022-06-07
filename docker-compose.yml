@@ -34,7 +34,7 @@ services:
       - "ofvp_network"
     environment:
       NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017/ofvp"
       COOKIE_SECRET: "dev"
       PASSWORD_ENCRYPT: "dev"
       DAEMON_PASSWORD: "dev"
@@ -56,5 +56,5 @@ services:
     depends_on:
       - deamon_maneger
     environment:
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017/ofvp"
       PASSWORD_ENCRYPT: "dev"

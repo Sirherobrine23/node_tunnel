@@ -23,7 +23,7 @@ if (!process.env.MongoDB_URL) process.env.MongoDB_URL = "mongodb://localhost:270
 const Connection = mongoose.createConnection(process.env.MongoDB_URL);
 Connection.on("error", err => {
   console.error("MongoDB connection error: %s", String(err));
-  process.exit(-1);
+  process.exit(1);
 });
 
 type sshType = {
@@ -100,16 +100,13 @@ async function syncUsers() {
 }
 
 Connection.once("connected", async () => {
+  console.log("Connected to MongoDB");
   await sshSchema.find().lean().then(async Data => {
-    for (const ssh of Data) {
-      try {
-        await Usermaneger.addUser(ssh.Username, DecryptPassword(ssh.Password), ssh.Expire);
-      } catch (err) {
-        console.error("Failed to add user: %s", String(err));
-      }
+    console.log("Add all users");
+    for (const {ssh, err} of await Promise.all(Data.map(ssh => Usermaneger.addUser(ssh.Username, DecryptPassword(ssh.Password), ssh.Expire).then(() => ({ssh})).catch(err => ({err, ssh})))) as Array<{err?: any, ssh: sshType}>) {
+      if (!!err) console.error("Failed to add %s, Error: %s", ssh.Username, String(err));
     }
   });
-  console.log("Connected to MongoDB");
   StartSshd(true);
   if (process.env.DONTSTARTBADVPN !== "true") startBadvpn();
   return syncUsers();
