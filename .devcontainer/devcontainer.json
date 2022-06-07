@@ -1,35 +1,56 @@
 {
-  "name": "devContainerBds",
-  "image": "ghcr.io/the-bds-maneger/devcontainer_nodejs",
-  "remoteUser": "devcontainer",
-  "containerUser": "devcontainer",
+  "name": "OFVp Openssh Server",
   "updateRemoteUserUID": false,
-  "postCreateCommand": "startDocker npm install",
+  "containerUser": "develop",
+  "remoteUser": "develop",
+  "overrideCommand": false,
+  "postCreateCommand": "npm install",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USERNAME": "develop",
+      "USER_UID": "1000"
+    }
+  },
   "runArgs": [
     "--init",
     "--privileged"
   ],
   "mounts": [
-    "type=tmpfs,destination=/var/lib/docker"
+    "target=/var/lib/docker,type=volume,source=ofvp_project_openssh"
   ],
   "extensions": [
-    "GitHub.copilot-nightly",
-    "GitHub.copilot-labs",
-    "benshabatnoam.google-translate-ext",
-    "eamodio.gitlens",
-    "github.vscode-pull-request-github",
-    "visualstudioexptteam.vscodeintellicode",
     "redhat.vscode-yaml",
-    "ms-vscode-remote.remote-containers",
-    "wix.vscode-import-cost",
+    "akamud.vscode-theme-onedark",
+    "hookyqr.beautify",
+    "aaron-bond.better-comments",
+    "wmaurer.change-case",
+    "oouo-diogo-perdigao.docthis",
+    "dbaeumer.vscode-eslint",
+    "me-dutour-mathieu.vscode-github-actions",
+    "benshabatnoam.google-translate-ext",
+    "oderwat.indent-rainbow",
+    "tgreen7.vs-code-node-require",
     "eg2.vscode-npm-script",
     "christian-kohler.npm-intellisense",
+    "ionutvmi.path-autocomplete",
     "christian-kohler.path-intellisense",
-    "aaron-bond.better-comments",
+    "esbenp.prettier-vscode",
+    "rangav.vscode-thunder-client",
+    "visualstudioexptteam.vscodeintellicode",
     "vscode-icons-team.vscode-icons",
-    "me-dutour-mathieu.vscode-github-actions",
-    "cschleiden.vscode-github-actions",
-    "oderwat.indent-rainbow",
-    "ms-azuretools.vscode-docker"
-  ]
+    "eamodio.gitlens",
+    "mongodb.mongodb-vscode",
+    "ms-azuretools.vscode-docker",
+    "chrmarti.regex",
+    "formulahendry.code-runner",
+    "euskadi31.json-pretty-printer"
+  ],
+  "settings": {
+    "editor.tabSize": 2,
+    "editor.minimap.enabled": false,
+    "files.eol": "\n",
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true
+  }
 }
