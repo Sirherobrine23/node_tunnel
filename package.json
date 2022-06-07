@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "cron": "^2.0.0",
-    "mongoose": "^6.3.5",
+    "mongoose": "^6.3.6",
     "systeminformation": "^5.11.16",
     "typescript": "^4.7.3"
   },
