@@ -28,7 +28,6 @@ async function copyCreateKeys() {
   }
 }
 
-
 export function startBadvpn() {
   console.log("Starting Badvpn");
   const badvpnExec = child_process.exec("badvpn --listen-addr 0.0.0.0:7300 --logger stdout --loglevel debug --max-clients 1000 --max-connections-for-client 10", {maxBuffer: Infinity});

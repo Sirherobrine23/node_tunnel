@@ -73,8 +73,8 @@ async function syncUsers() {
   let Users: Array<sshType> = [];
   while (true) {
     const newUsers = await sshSchema.find({}).lean();
-    const removed = Users.filter(user => !newUsers.find(newUser => newUser.UserID === user.UserID));
-    const added = newUsers.filter(newUser => !Users.find(user => user.UserID === newUser.UserID));
+    const removed = Users.filter(user => !newUsers.some(newUser => newUser.UserID === user.UserID));
+    const added = newUsers.filter(newUser => !Users.some(user => user.UserID === newUser.UserID));
     if (removed.length > 0) {
       for (const user of removed) {
         try {
@@ -88,7 +88,8 @@ async function syncUsers() {
     if (added.length > 0) {
       for (const user of added) {
         try {
-          await Usermaneger.addUser(user.Username, DecryptPassword(user.Password), user.Expire);
+          await Usermaneger.addUser(user.Username, DecryptPassword(user.Password), user.Expire).then();
+          console.log("Added: %s", user.Username);
         } catch (err) {
           console.error("Failed to add user: %s", user.Username);
         }
@@ -101,8 +102,8 @@ async function syncUsers() {
 
 Connection.once("connected", async () => {
   console.log("Connected to MongoDB");
+  console.log("Add all users to System");
   await sshSchema.find().lean().then(async Data => {
-    console.log("Add all users");
     for (const {ssh, err} of await Promise.all(Data.map(ssh => Usermaneger.addUser(ssh.Username, DecryptPassword(ssh.Password), ssh.Expire).then(() => ({ssh})).catch(err => ({err, ssh})))) as Array<{err?: any, ssh: sshType}>) {
       if (!!err) console.error("Failed to add %s, Error: %s", ssh.Username, String(err));
     }

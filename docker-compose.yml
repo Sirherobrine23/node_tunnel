@@ -54,7 +54,7 @@ services:
     volumes:
       - ssh_data:/data
     depends_on:
-      - deamon_maneger
+      - ofvp_mongodb
     environment:
       MongoDB_URL: "mongodb://ofvp_mongodb:27017/ofvp"
       PASSWORD_ENCRYPT: "dev"

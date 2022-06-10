@@ -69,7 +69,7 @@ function execPromise(cmd: string, env?: {[key: string]: string}): Promise<{stdou
   });
 }
 
-async function getUsers(): Promise<Array<{
+export async function getUsers(): Promise<Array<{
   Username: string,
   // Password: string,
   uid: number,
