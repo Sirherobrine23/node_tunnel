@@ -3,6 +3,7 @@ import { StartSshd, startBadvpn } from "./service";
 import * as Usermaneger from "./userManeger";
 import mongoose from "mongoose"
 import crypto from "crypto";
+
 console.log("Starting...");
 const SecretEncrypt = (process.env.PASSWORD_ENCRYPT||"").trim();
 if (!SecretEncrypt) {
@@ -100,6 +101,27 @@ async function syncUsers() {
   }
 }
 
+async function removeConnections() {
+  while (true) {
+    const process = (await Usermaneger.GetProcess()).filter(process => process.command.includes("ssh") && !/defunct/.test(process.command));
+    for (const user of await sshSchema.find({}).lean()) {
+      if (user.maxConnections === 0) continue;
+      const userProcess = process.filter(process => process.user === user.Username);
+      if (userProcess.length > user.maxConnections) {
+        for (const process of userProcess.slice(user.maxConnections)) {
+          try {
+            await process.KillProcess();
+            console.log("Killed: %s", process.command);
+          } catch (err) {
+            console.error("Failed to kill process: %s", process.command);
+          }
+        }
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
 Connection.once("connected", async () => {
   console.log("Connected to MongoDB");
   console.log("Add all users to System");
@@ -110,5 +132,6 @@ Connection.once("connected", async () => {
   });
   StartSshd(true);
   if (process.env.DONTSTARTBADVPN !== "true") startBadvpn();
+  removeConnections();
   return syncUsers();
 });

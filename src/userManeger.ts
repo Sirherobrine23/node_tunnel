@@ -1,6 +1,5 @@
 import * as child_process from "node:child_process";
 import * as fs from "node:fs/promises";
-import systeminformation from "systeminformation";
 
 export type typeUser = {
   UserID: string,
@@ -12,40 +11,6 @@ export type typeUser = {
     iv: string
   }
 };
-
-type SshMonitorType = {
-  Username: string;
-  expire: Date;
-  Max_Connections: number;
-  connections: Array<{
-    CPU: number;
-    Started: Date;
-    TimeConnected: {
-      seconds?: number;
-      minutes?: number;
-      hours?: number;
-      days?: number;
-      weeks?: number;
-      months?: number;
-      years?: number;
-    };
-  }>;
-}
-
-async function GetProcess() {
-  return (await systeminformation.processes()).list.map(Process => {
-    const { command, cpus, mem, pid, user, params, started } = Process;
-    return {
-      pid: pid,
-      cpu: cpus,
-      mem: mem,
-      user: user,
-      command: command + " " + params,
-      Started: new Date(started),
-      KillProcess: () => child_process.execFileSync("kill", ["-9", String(pid)])
-    };
-  });
-}
 
 function execFilePromise(cmd: string, args?: Array<string>, env?: {[key: string]: string}): Promise<{stdout: string, stderr: string}> {
   return new Promise((resolve, reject) => {
@@ -60,12 +25,51 @@ function execFilePromise(cmd: string, args?: Array<string>, env?: {[key: string]
 
 function execPromise(cmd: string, env?: {[key: string]: string}): Promise<{stdout: string, stderr: string}> {
   return new Promise((resolve, reject) => {
-    child_process.exec(cmd, {
-      env: {...process.env, ...(env||{})}
-    }, (err, stdout, stderr) => {
+    child_process.exec(cmd, {env: {...process.env, ...(env||{})}}, (err, stdout, stderr) => {
       if (err) return reject(err);
       return resolve({stdout, stderr});
     });
+  });
+}
+
+type getProcess = {
+  pid: number,
+  cpu: number,
+  mem: number,
+  user: string,
+  command: string,
+  KillProcess: () => Promise<void>,
+  Started: Date,
+};
+export function GetProcess(): Promise<Array<getProcess>> {
+  return new Promise((resolve, reject) => {
+    execFilePromise("ps", ["-aeo", "pid,user,%cpu,%mem,start,command"]).then(({stdout}) => {
+      const ps = stdout.split(/\r?\n/gi).slice(1).filter(x => !!x).map(x=>x.trim());
+      const Processes = ps.map(x => {
+        // 1 develop   0.0  0.0 23:15:53 /sbin/docker-init -- /bin/sh -c echo Container started trap "exit 0" 15  exec "$@" while sleep 1 & wait $!; do :; done - /usr/local/bin/start.sh
+        const mat = x.match(/^([0-9]+)\s+(.*)\s+([0-9\.]+)\s+([0-9\.]+)\s+([0-9\:]+)\s+(.*)$/)
+        if (!mat) {
+          console.log("[Get Process]: Ignore line %s", x);
+          return null;
+        }
+        let [pid, user, cpu, mem, started, command, args] = mat.slice(1);
+        const ddDate = started.split(":");
+        if (!args||args === "undefined") args = "";
+        return {
+          pid: parseInt(pid),
+          cpu: parseFloat(cpu),
+          mem: parseFloat(mem),
+          user: user.trim(),
+          command: (command+" "+args).trim(),
+          Started: new Date(Date.now() - (ddDate.length > 1 ? (parseInt(ddDate[0]) * 60 + parseInt(ddDate[1])) * 1000 : parseInt(ddDate[0]) * 1000)),
+          KillProcess: async () => {
+            await execFilePromise("kill", ["-9", pid]);
+            return;
+          }
+        };
+      });
+      return resolve(Processes.filter(x => !!x));
+    }).catch(reject);
   });
 }
 
@@ -129,34 +133,52 @@ export async function removeUser(username: string) {
   return;
 }
 
-export async function SshMonitor(users: Array<typeUser>): Promise<Array<SshMonitorType>> {
-  const CurrentDate = new Date();
-  const Current_Process = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
-  return users.map(User => {
-    const SSH_Connections = Current_Process.filter(a => a.user === User.Username);
-    const Ssh = {
-      Username: User.Username,
-      expire: User.Expire,
-      Max_Connections: User.maxConnections,
-      connections: SSH_Connections.map(Process => {
-        const calconne = () => {
-          const CallD = {};
-          let Difference = CurrentDate.getTime() - Process.Started.getTime();
-          const DatesCal = [{name: "seconds", value: 1000, correct_value: 60}, {name: "minutes", value: 60, correct_value: 60}, {name: "hours", value: 60, correct_value: 60}, {name: "days", value: 24, correct_value: 24}, {name: "weeks", value: 7, correct_value: 7}, {name: "months", value: 30, correct_value: 30}, {name: "years", value: 12, correct_value: 12}];
-          for (const Dat of DatesCal) {
-            if (Difference <= Dat.value) break
-            Difference = Difference / Dat.value;
-            CallD[Dat.name] = Math.floor(Difference % Dat.correct_value);
-          }
-          return CallD;
-        }
-        return {
-          CPU: Process.cpu,
-          Started: Process.Started,
-          TimeConnected: calconne()
-        };
-      }),
-    }
-    return Ssh;
-  });
-}
+// type SshMonitorType = {
+//   Username: string;
+//   expire: Date;
+//   Max_Connections: number;
+//   connections: Array<{
+//     CPU: number;
+//     Started: Date;
+//     TimeConnected: {
+//       seconds?: number;
+//       minutes?: number;
+//       hours?: number;
+//       days?: number;
+//       weeks?: number;
+//       months?: number;
+//       years?: number;
+//     };
+//   }>;
+// }
+// export async function SshMonitor(users: Array<typeUser>): Promise<Array<SshMonitorType>> {
+//   const CurrentDate = new Date();
+//   const Current_Process = (await GetProcess()).filter(a => a.command.includes("ssh") && !a.command.includes("defunct"));
+//   return users.map(User => {
+//     const SSH_Connections = Current_Process.filter(a => a.user === User.Username);
+//     const Ssh = {
+//       Username: User.Username,
+//       expire: User.Expire,
+//       Max_Connections: User.maxConnections,
+//       connections: SSH_Connections.map(Process => {
+//         const calconne = () => {
+//           const CallD = {};
+//           let Difference = CurrentDate.getTime() - Process.Started.getTime();
+//           const DatesCal = [{name: "seconds", value: 1000, correct_value: 60}, {name: "minutes", value: 60, correct_value: 60}, {name: "hours", value: 60, correct_value: 60}, {name: "days", value: 24, correct_value: 24}, {name: "weeks", value: 7, correct_value: 7}, {name: "months", value: 30, correct_value: 30}, {name: "years", value: 12, correct_value: 12}];
+//           for (const Dat of DatesCal) {
+//             if (Difference <= Dat.value) break
+//             Difference = Difference / Dat.value;
+//             CallD[Dat.name] = Math.floor(Difference % Dat.correct_value);
+//           }
+//           return CallD;
+//         }
+//         return {
+//           CPU: Process.cpu,
+//           Started: Process.Started,
+//           TimeConnected: calconne()
+//         };
+//       }),
+//     }
+//     return Ssh;
+//   });
+// }
