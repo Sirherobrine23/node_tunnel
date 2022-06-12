@@ -14,7 +14,7 @@ ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt update && apt -y install wget curl git python3-minimal
 
 # Install latest node
-RUN RUN wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
+RUN wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
 
 # Install Openssh Server
 RUN apt update && \
