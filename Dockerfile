@@ -1,5 +1,7 @@
+# Copy only badvpn image
 FROM ghcr.io/ofvp-project/badvpn:latest AS badvpn_prebuilt
 
+# Create (Open)ssh server
 FROM debian:latest as server
 LABEL org.opencontainers.image.title="OFVp SSH Server"
 LABEL org.opencontainers.image.description="SSH Server for OFVp"
@@ -12,7 +14,7 @@ ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt update && apt -y install wget curl git python3-minimal
 
 # Install latest node
-RUN VERSION=$(wget -qO- https://api.github.com/repos/Sirherobrine23/DebianNodejsFiles/releases/latest |grep 'name' | grep "nodejs"|grep "$(dpkg --print-architecture)"|cut -d '"' -f 4 | sed 's|nodejs_||g' | sed -e 's|_.*.deb||g'|sort | uniq|tail -n 1); wget -q "https://github.com/Sirherobrine23/DebianNodejsFiles/releases/download/debs/nodejs_${VERSION}_$(dpkg --print-architecture).deb" -O /tmp/nodejs.deb && dpkg -i /tmp/nodejs.deb && rm -rfv /tmp/nodejs.deb && npm install -g npm@latest
+RUN RUN wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
 
 # Install Openssh Server
 RUN apt update && \
