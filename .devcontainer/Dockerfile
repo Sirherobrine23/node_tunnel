@@ -8,7 +8,7 @@ RUN wget $(wget -qO- https://api.github.com/repos/Sirherobrine23/DebianNodejsFil
 # Install Docker and Docker Compose
 VOLUME [ "/var/lib/docker" ]
 RUN wget -qO- https://get.docker.com | sh && \
-  wget -q $(wget -qO- https://api.github.com/repos/docker/compose/releases | grep 'browser_download_url' | grep -v '.sha' | grep $(uname -s) | grep $(uname -m) | cut -d '"' -f 4 | sort | tail -n1)\
+  wget -q $(wget -qO- https://api.github.com/repos/docker/compose/releases/latest | grep 'browser_download_url' | grep -v '.sha' | cut -d '"' -f 4 | grep linux | grep $(uname -m) | head -n 1)\
   -O /usr/local/bin/docker-compose && chmod +x -v /usr/local/bin/docker-compose
 
 # Create docker and minikube start script

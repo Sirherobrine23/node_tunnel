@@ -1,15 +1,26 @@
 #!/usr/bin/env node
 import { StartSshd, startBadvpn } from "./service";
 import * as Usermaneger from "./userManeger";
-import mongoose from "mongoose"
+import { io as socketIO } from "socket.io-client";
 import crypto from "crypto";
 
-console.log("Starting...");
-const SecretEncrypt = (process.env.PASSWORD_ENCRYPT||"").trim();
+const SecretEncrypt = process.env.PASSWORD_ENCRYPT;
 if (!SecretEncrypt) {
   console.error("env PASSWORD_ENCRYPT it blank.");
   process.exit(1);
 }
+console.log("Starting...");
+const { DAEMON_HOST, DAEMON_USERNAME, DAEMON_PASSWORD } = process.env;
+if (!DAEMON_HOST) {
+  console.log("Daemon host not defined");
+  process.exit(1);
+}
+const io = socketIO(DAEMON_HOST, {
+  auth: {
+    username: DAEMON_USERNAME,
+    password: DAEMON_PASSWORD
+  }
+});
 
 function DecryptPassword(passwordObject: {iv: string; Encrypt: string;}): string {
   const {iv, Encrypt} = passwordObject;
@@ -19,13 +30,6 @@ function DecryptPassword(passwordObject: {iv: string; Encrypt: string;}): string
   const decipher = crypto.createDecipheriv("aes-192-cbc", key, Buffer.from(iv, "hex"));
   return decipher.update(Encrypt, "hex", "utf8") + decipher.final("utf8");
 };
-
-if (!process.env.MongoDB_URL) process.env.MongoDB_URL = "mongodb://localhost:27017/OFVpServer";
-const Connection = mongoose.createConnection(process.env.MongoDB_URL);
-Connection.on("error", err => {
-  console.error("MongoDB connection error: %s", String(err));
-  process.exit(1);
-});
 
 type sshType = {
   UserID: string,
@@ -37,43 +41,18 @@ type sshType = {
     iv: string
   }
 };
-
-const sshSchema = Connection.model<sshType>("SSH", new mongoose.Schema<sshType>({
-  UserID: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  Username: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  maxConnections: {
-    type: Number,
-    required: true,
-    default: 5
-  },
-  Expire: {
-    type: Date,
-    required: true
-  },
-  Password: {
-    Encrypt: {
-      type: String,
-      required: true
-    },
-    iv: {
-      type: String,
-      required: true
-    }
-  }
-}));
+function getUsers(): Promise<Array<sshType>> {
+  return new Promise<Array<sshType>>(resolve => {
+    // "opensshUsers"
+    io.once("opensshUsers", data => resolve(data));
+    io.emit("opensshUsers", "get");
+  });
+}
 
 async function syncUsers() {
   let Users: Array<sshType> = [];
   while (true) {
-    const newUsers = await sshSchema.find({}).lean();
+    const newUsers = await getUsers();
     const removed = Users.filter(user => !newUsers.some(newUser => newUser.UserID === user.UserID));
     const added = newUsers.filter(newUser => !Users.some(user => user.UserID === newUser.UserID));
     if (removed.length > 0) {
@@ -104,7 +83,7 @@ async function syncUsers() {
 async function removeConnections() {
   while (true) {
     const process = (await Usermaneger.GetProcess()).filter(process => process.command.includes("ssh") && !/defunct/.test(process.command));
-    for (const user of await sshSchema.find({}).lean()) {
+    for (const user of await getUsers()) {
       if (user.maxConnections === 0) continue;
       const userProcess = process.filter(process => process.user === user.Username);
       if (userProcess.length > user.maxConnections) {
@@ -122,10 +101,10 @@ async function removeConnections() {
   }
 }
 
-Connection.once("connected", async () => {
+io.once("connect", async () => {
   console.log("Connected to MongoDB");
   console.log("Add all users to System");
-  await sshSchema.find().lean().then(async Data => {
+  await getUsers().then(async Data => {
     for (const {ssh, err} of await Promise.all(Data.map(ssh => Usermaneger.addUser(ssh.Username, DecryptPassword(ssh.Password), ssh.Expire).then(() => ({ssh})).catch(err => ({err, ssh})))) as Array<{err?: any, ssh: sshType}>) {
       if (!!err) console.error("Failed to add %s, Error: %s", ssh.Username, String(err));
     }

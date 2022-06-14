@@ -1,60 +1,62 @@
 version: "3.9"
 volumes:
+  data_api:
+  data_ssh:
   MongoOFVp:
-  ssh_data:
-networks:
-  ofvp_network:
-    # enable_ipv6: true
 services:
-  ofvp_mongodb:
-    container_name: ofvp_mongodb
-    restart: on-failure
-    image: mongo
-    volumes:
-      - MongoOFVp:/data/db
-    networks:
-      - "ofvp_network"
+  # Mongo Apps and Server
+  mongodb:
+    build: https://raw.githubusercontent.com/prisma/prisma/main/docker/mongodb_replica/Dockerfile
+    restart: always
+    ports:
+      - 27017:27017/tcp
     environment:
-      - PUID=1000
-      - PGID=1000
-    entrypoint:
-    - "mongod"
-    - "--bind_ip_all"
-    - "--quiet"
-    - "--logpath"
-    - "/dev/null"
-
-  deamon_maneger:
-    container_name: deamon_maneger
-    restart: on-failure
-    image: ghcr.io/ofvp-project/deamonmaneger:latest
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ofvpuser
+      MONGO_REPLICA_HOST: localhost
+      MONGO_REPLICA_PORT: 27017
+  mongo-express:
+    image: mongo-express
+    # restart: always
     depends_on:
-      - ofvp_mongodb
-    networks:
-      - "ofvp_network"
+      - mongodb
+    links:
+      - mongodb
+    ports:
+      - 8081:8081
     environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017/ofvp"
-      COOKIE_SECRET: "dev"
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: devpass
+      ME_CONFIG_MONGODB_URL: "mongodb://root:ofvpuser@mongodb:27017"
+
+  # OFVp
+  ofvp_daemon_maneger:
+    image: ghcr.io/ofvp-project/deamonmaneger:next
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+    environment:
+      # NODE_ENV: "development"
+      MongoDB_URL: "mongodb://root:ofvpuser@mongodb:27017"
       PASSWORD_ENCRYPT: "dev"
-      DAEMON_PASSWORD: "dev"
-      DAEMON_USER: "dev"
+      COOKIE_SECRET: "dev"
+      DAEMON_USERNAME: ""
+      DAEMON_PASSWORD: ""
     ports:
       - 3000:3000/tcp
+    volumes:
+      - data_api:/data
 
   ofvp_openssh:
-    restart: on-failure
     build:
-      context: .
       dockerfile: Dockerfile
-    networks:
-      - "ofvp_network"
+    environment:
+      PASSWORD_ENCRYPT: "dev"
+      DAEMON_HOST: "http://ofvp_daemon_maneger:5000"
+      DAEMON_USERNAME: ""
+      DAEMON_PASSWORD: ""
     ports:
       - 2222:22/tcp
     volumes:
-      - ssh_data:/data
-    depends_on:
-      - ofvp_mongodb
-    environment:
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017/ofvp"
-      PASSWORD_ENCRYPT: "dev"
+      - data_ssh:/data
