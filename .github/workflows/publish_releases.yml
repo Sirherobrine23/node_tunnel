@@ -42,7 +42,6 @@ jobs:
         with:
           context: .
           push: true
-          target: server
           tags: ${{ env.DOCKERIMAGE }}:${{ env.PACKAGE_VERSION }}
           platforms: ${{ env.DOCKERPLATFORM }}
           cache-from: type=gha,scope=${{ github.ref }}_${{ hashFiles('**/package-lock.json') }}
