@@ -14,18 +14,14 @@ COPY --from=badvpn_prebuilt /usr/bin/badvpn-udpgw /usr/bin/badvpn
 
 # Install core packages
 ARG DEBIAN_FRONTEND="noninteractive"
-RUN apt update && apt -y install wget curl git && \
-  wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash && \
-  apt install -y openssh-server && \
-  rm -fv /etc/ssh/sshd_config /etc/ssh/ssh_host_* && \
-  ln -s -v /app/ssh_config.conf /etc/ssh/sshd_config && \
-  ln -s -v /app/Banner.html /etc/ssh/banner
+RUN apt update && apt install -y wget curl procps && wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
 
 # Setup Project
 EXPOSE 22/tcp
 VOLUME [ "/data" ]
 WORKDIR /app
-ENTRYPOINT [ "node", "--trace-warnings", "dist/index.js" ]
+RUN npm i -g pm2
+ENTRYPOINT [ "pm2-runtime", "start", "ecosystem.config.js" ]
 ENV \
   # Daemon connect
   DAEMON_HOST="http://localhost:5000" DAEMON_USERNAME="" DAEMON_PASSWORD="" \
