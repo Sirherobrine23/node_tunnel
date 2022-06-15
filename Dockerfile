@@ -14,7 +14,7 @@ COPY --from=badvpn_prebuilt /usr/bin/badvpn-udpgw /usr/bin/badvpn
 
 # Install core packages
 ARG DEBIAN_FRONTEND="noninteractive"
-RUN apt update && apt install -y wget curl procps && wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
+RUN apt update && apt install -y wget curl procps && wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash && apt install -y openssh-client --no-install-recommends
 
 # Setup Project
 EXPOSE 22/tcp
@@ -35,3 +35,4 @@ COPY package*.json ./
 RUN npm install --no-save
 COPY ./ ./
 RUN npm run build
+ENV NODE_ENV="production"

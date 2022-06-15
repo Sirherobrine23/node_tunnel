@@ -3,6 +3,7 @@ networks:
   defaultOfvpNetwork:
 volumes:
   mongoStorage:
+  sshStorage:
 
 services:
   mongodb:
@@ -24,12 +25,13 @@ services:
       DAEMON_USERNAME: ""
       DAEMON_PASSWORD: ""
 
-  ofvp_openssh:
+  ssh:
     build: .
     restart: on-failure
     depends_on: [ofvpmaneger]
     networks: [defaultOfvpNetwork]
     ports: [2222:22/tcp]
+    volumes: [sshStorage:/data]
     environment:
       PASSWORD_ENCRYPT: "dev"
       DAEMON_HOST: "http://ofvpmaneger:5000"
