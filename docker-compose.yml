@@ -25,15 +25,42 @@ services:
       DAEMON_USERNAME: ""
       DAEMON_PASSWORD: ""
 
+  wireguard:
+    image: ghcr.io/ofvp-project/wireguard:next
+    restart: always
+    depends_on: [ofvpmaneger]
+    networks: [defaultOfvpNetwork]
+    volumes: [/lib/modules/:/lib/modules/:ro]
+    ports: [51820:51820/udp]
+    privileged: true
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+      net.ipv6.conf.all.disable_ipv6: 0
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv4.ip_forward: 1
+    environment:
+      DAEMON_HOST: "http://ofvpmaneger:5000"
+      DAEMON_USERNAME: ""
+      DAEMON_PASSWORD: ""
+
   ssh:
-    build: .
-    restart: on-failure
+    build: ./
+    restart: always
     depends_on: [ofvpmaneger]
     networks: [defaultOfvpNetwork]
     ports: [2222:22/tcp]
     volumes: [sshStorage:/data]
     environment:
       PASSWORD_ENCRYPT: "dev"
+      NODE_ENV: "development"
       DAEMON_HOST: "http://ofvpmaneger:5000"
       DAEMON_USERNAME: ""
       DAEMON_PASSWORD: ""
+
+  webproxy:
+    image: ghcr.io/ofvp-project/webproxy:latest
+    restart: always
+    depends_on: [ssh]
+    networks: [defaultOfvpNetwork]
+    ports: [8080:80/tcp]
+    command: "-l 2 --ssh ssh:22"

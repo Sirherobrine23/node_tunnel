@@ -28,7 +28,11 @@ ENV \
   # Password to decrypt users password
   PASSWORD_ENCRYPT="" \
   # Start BadVPN
-  DONTSTARTBADVPN="false"
+  DONTSTARTBADVPN="false" \
+  # Show BadVPN logs
+  SHOWBADVPNLOGS="false" \
+  # Show SSH Port forwarding logs
+  SHOWSSHLOGS="true"
 
 # Install Node packages and Transpiller typescript
 COPY package*.json ./

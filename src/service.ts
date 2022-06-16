@@ -5,13 +5,14 @@ import * as os from "node:os";
 import * as crypto from "node:crypto";
 
 const __TempFile = path.join(os.tmpdir(), "badvpnStart.lock");
+const showBadLog = process.env.SHOWBADVPNLOGS === "true";
 export function startBadvpn() {
   if (fs.existsSync(__TempFile)) return;
   fs.writeFileSync(__TempFile, "1");
   console.log("Starting Badvpn");
   const badvpnExec = child_process.exec("badvpn --listen-addr 0.0.0.0:7300 --logger stdout --loglevel debug --max-clients 1000 --max-connections-for-client 10", {maxBuffer: Infinity});
-  badvpnExec.stdout.on("data", data => process.stdout.write(data));
-  badvpnExec.stderr.on("data", data => process.stdout.write(data));
+  if (showBadLog) badvpnExec.stdout.on("data", data => process.stdout.write(data));
+  if (showBadLog) badvpnExec.stderr.on("data", data => process.stdout.write(data));
   badvpnExec.on("close", code => {
     if (code !== 0) {
       console.log("Badvpn Closed with Code: " + code);
@@ -47,4 +48,9 @@ export async function CreateSSHKeys(): Promise<sshHostKeys> {
     return {priv, pub};
   }));
   return {rsa, dsa, ecdsa, ed25519};
+}
+
+const SshInstancepm2 = process.env.NODE_APP_INSTANCE || "0";
+export function log(Message: string, ...Args: any[]) {
+  console.log(`[SSH Server %s]: ${Message}`, SshInstancepm2, ...Args);
 }
