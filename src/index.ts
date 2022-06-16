@@ -8,7 +8,12 @@ import * as services from "./service";
 const keysPath = "/data/keys.json";
 const __SSH_INSTANCE = process.env.NODE_APP_INSTANCE || "0";
 const showSSHLog = process.env.SHOWSSHLOGS === "true";
-
+const userConnections: {[user: string]: number} = {};
+daemonSocket.io.on("userConnection", (data: {user: string, action: "connect"|"diconnect", in: number}) => {
+  console.log("Daemon: %s connected!", data.user);
+  if (data.action === "connect") userConnections[data.user] += data.in;
+  else userConnections[data.user]--;
+});
 async function startServer() {
   const bannerFile = fs.readFileSync("./Banner.html", "utf8")
   const sshConfig: ssh2.ServerConfig = {hostKeys: [], banner: bannerFile, greeting: bannerFile};
@@ -25,8 +30,7 @@ async function startServer() {
     sshConfig.hostKeys.push(keys.dsa.priv, keys.ecdsa.priv, keys.ed25519.priv, keys.rsa.priv);
   }
   const sshServer = new ssh2.Server(sshConfig);
-  sshServer.on("error", err => console.error(String(err)));
-  const userConnections: {[user: string]: number} = {};
+  sshServer.on("error", err => services.log("Server catch error: %s", String(err)));
   sshServer.on("connection", client => {
     let Username = "Unknown Client";
     client.on("close", () => {
@@ -34,11 +38,12 @@ async function startServer() {
       if (Username === "Unknown Client") return;
       if (userConnections[Username]) {
         userConnections[Username]--;
+        daemonSocket.io.emit("userConnection", {user: Username, action: "disconnect"});
       }
     });
-    client.on("error", err => console.log(String(err)));
+    client.on("error", err => services.log("Client catch error: %s", String(err)));
     client.on("authentication", async (ctx) => {
-      let authSuccess = true;
+      let authSuccess = false;
       Username = ctx.username;
       userConnections[Username] = (userConnections[Username] || 0) + 1;
       const user = await daemonSocket.getUsers(true).then(user => user.find(user => user.Username === Username));
@@ -49,15 +54,21 @@ async function startServer() {
           return ctx.reject(["password"]);
         } else if (ctx.method === "password") {
           const rePass = daemonSocket.DecryptPassword(user.Password);
-          if (rePass !== ctx.password) authSuccess = false;
-          const connections = (userConnections[Username] || 0);
-          if (user.maxConnections !== 0) {
-            if (user.maxConnections > connections) authSuccess = false;
+          services.log("%s: %s === %s", Username, ctx.password, rePass);
+          if (rePass === ctx.password) authSuccess = true;
+          if (authSuccess) {
+            const connections = (userConnections[Username] || 0);
+            if (user.maxConnections === 0) authSuccess = true;
+            else if (user.maxConnections >= connections) {
+              services.log("%s Max connections: %s, in user: %s", Username, user.maxConnections, connections);
+              authSuccess = false;
+            }
           }
         }
       }
       if (authSuccess) {
         services.log("%s authenticated!", Username);
+        daemonSocket.io.emit("userConnection", {user: Username, action: "connect", in: userConnections[Username] || 0});
         return ctx.accept();
       }
       services.log("Auth Failed: %s", Username);
@@ -65,7 +76,7 @@ async function startServer() {
     });
     client.on("ready", () => {
       // After auth is successful, we can start accepting any port forwarding requests.
-      client.on("tcpip", (accept, reject, info) => {
+      client.on("tcpip", (accept, _reject, info) => {
         const { destIP, destPort } = info;
         if (showSSHLog) services.log("%s wants to forward %s:%d", Username, destIP, destPort);
         daemonSocket.io.emit("ssh-forward", {user: Username, ip: destIP, port: destPort});

@@ -63,4 +63,4 @@ services:
     depends_on: [ssh]
     networks: [defaultOfvpNetwork]
     ports: [8080:80/tcp]
-    command: "-l 2 --ssh ssh:22"
+    command: "-l 1 --ssh ssh:22"
