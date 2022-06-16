@@ -26,6 +26,7 @@ async function startServer() {
   }
   const sshServer = new ssh2.Server(sshConfig);
   const userConnections: {[user: string]: number} = {};
+  sshServer.on("error", err => console.error(String(err)));
   sshServer.on("connection", client => {
     console.log("[SSH Server %s] Client connected!", __SSH_INSTANCE);
     let Username = "Unknown Client";
@@ -36,8 +37,14 @@ async function startServer() {
         userConnections[Username]--;
       }
     });
+    client.on("error", err => console.log(String(err)));
     client.on("authentication", async (ctx) => {
       Username = ctx.username;
+      console.log(ctx)
+      if (ctx.method === "none") {
+        ctx.reject()
+        return;
+      }
       if (ctx.method !== "password") return ctx.reject();
       const { password } = ctx;
       userConnections[Username] = (userConnections[Username] || 0) + 1;
@@ -46,7 +53,8 @@ async function startServer() {
         console.log("[SSH Server %s] %s failed to authenticate!", __SSH_INSTANCE, Username)
         return ctx.reject();
       }
-      const authOk = daemonSocket.DecryptPassword(user.Password) === password;
+      const rePass = daemonSocket.DecryptPassword(user.Password);
+      const authOk = rePass === password;
       if (!authOk) {
         console.log("[SSH Server %s] %s failed to authenticate!", __SSH_INSTANCE, Username)
         return ctx.reject();
@@ -68,6 +76,12 @@ async function startServer() {
         console.log(info);
         const tcp = net.createConnection({port: info.destPort, host: info.destIP});
         const channel = accept();
+        channel.on("close", () => tcp.end());
+        tcp.on("end", () => channel.end());
+        channel.once("error", () => tcp.end());
+        tcp.once("error", () => channel.end());
+        tcp.once("error", console.error);
+        channel.once("error", console.error)
         tcp.pipe(channel);
         channel.pipe(tcp);
       });
