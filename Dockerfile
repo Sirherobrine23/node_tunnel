@@ -21,7 +21,7 @@ EXPOSE 22/tcp
 VOLUME [ "/data" ]
 WORKDIR /app
 RUN npm i -g pm2
-ENTRYPOINT [ "pm2-runtime", "start", "ecosystem.config.js" ]
+ENTRYPOINT [ "node", "dist/index.js" ]
 ENV \
   # Daemon connect
   DAEMON_HOST="http://localhost:5000" DAEMON_USERNAME="" DAEMON_PASSWORD="" \

@@ -15,7 +15,8 @@ console.log("Starting daemon connection on %s...", DAEMON_HOST);
 export const io = socketIO(DAEMON_HOST, {
   transports: ["websocket", "polling"],
   auth: {username: DAEMON_USERNAME, password: DAEMON_PASSWORD},
-  extraHeaders: {username: DAEMON_USERNAME, password: DAEMON_PASSWORD, is: "ssh"},
+  extraHeaders: {username: DAEMON_USERNAME, password: DAEMON_PASSWORD, group: "ssh"},
+  query: {group: "ssh"}
 });
 io.on("connect_error", err => {
   console.error(String(err));
