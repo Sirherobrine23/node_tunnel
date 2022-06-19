@@ -1,24 +1,24 @@
 {
-  "name": "@ofvp_project/openssh",
-  "version": "5.0.1",
+  "name": "@ofvp_project/ssh-server",
+  "version": "5.0.2",
   "description": "One of the project servers, this one is for using the ssh tunnel.",
   "main": "dist/index.js",
   "private": true,
   "author": "ofvp_project",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://github.com/OFVp-Project/OpenSSH#readme",
+  "homepage": "https://github.com/OFVp-Project/SSH-Server#readme",
   "scripts": {
     "build": "tsc"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OFVp-Project/OpenSSH.git"
+    "url": "git+https://github.com/OFVp-Project/SSH-Server.git"
   },
   "keywords": [
     "ofvp_project"
   ],
   "bugs": {
-    "url": "https://github.com/OFVp-Project/OpenSSH/issues"
+    "url": "https://github.com/OFVp-Project/SSH-Server/issues"
   },
   "dependencies": {
     "cron": "^2.0.0",

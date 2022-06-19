@@ -5,27 +5,32 @@ import * as ssh2 from "ssh2";
 import * as daemonSocket from "./socket";
 import * as services from "./service";
 
-const keysPath = "/data/keys.json";
-const __SSH_INSTANCE = process.env.NODE_APP_INSTANCE || "0";
-const showSSHLog = process.env.SHOWSSHLOGS === "true";
 const userConnections: {[user: string]: number} = {};
-async function startServer() {
-  const bannerFile = fs.readFileSync("./Banner.html", "utf8");
-  console.log(bannerFile);
-  const sshConfig: ssh2.ServerConfig = {hostKeys: []};
-  if (!fs.existsSync(keysPath)) {
-    if (__SSH_INSTANCE === "0") {
-      console.error("Generating keys...");
-      const keys = await services.CreateSSHKeys();
-      fs.writeFileSync(keysPath, JSON.stringify(keys, null, 2));
-      console.error("Keys generated.");
-      sshConfig.hostKeys.push(keys.dsa.priv, keys.ecdsa.priv, keys.ed25519.priv, keys.rsa.priv);
-    }
-  } else {
-    const keys: services.sshHostKeys = JSON.parse(fs.readFileSync(keysPath, "utf8"));
-    sshConfig.hostKeys.push(keys.dsa.priv, keys.ecdsa.priv, keys.ed25519.priv, keys.rsa.priv);
+const showSSHLog = process.env.SHOWSSHLOGS === "true";
+const PMINSTANCE = process.env.NODE_APP_INSTANCE || "0";
+async function getKeys() {
+  const keysPath = "/data/keys.json";
+  if (!fs.existsSync(keysPath) && PMINSTANCE === "0") {
+    console.error("Generating keys...");
+    const keys = await services.CreateSSHKeys();
+    fs.writeFileSync(keysPath, JSON.stringify(keys, null, 2));
+    console.error("Keys generated.");
+    return [keys.dsa.priv, keys.ecdsa.priv, keys.ed25519.priv, keys.rsa.priv];
   }
-  const sshServer = new ssh2.Server(sshConfig);
+  const keys: services.sshHostKeys = JSON.parse(fs.readFileSync(keysPath, "utf8"));
+  return [keys.dsa.priv, keys.ecdsa.priv, keys.ed25519.priv, keys.rsa.priv];
+}
+
+function catchErr(sock: net.Socket|ssh2.ServerChannel, err: Error, Username: string, destIP: string, destPort: number) {
+  if (showSSHLog) services.log("%s: Catch!, ip:port: %s:%d, err: %s", Username, destIP, destPort, String(err));
+  sock.end();
+};
+
+async function startServer() {
+  const sshServer = new ssh2.Server({
+    hostKeys: await getKeys(),
+    banner: `<span style="color: green;">Success connection</span>, <a href="https://github.com/OFVp-Project/SSH-Server">Code Source</a>`,
+  });
   sshServer.on("error", err => services.log("Server catch error: %s", String(err)));
   sshServer.on("connection", client => {
     let Username = "Unknown Client";
@@ -37,7 +42,7 @@ async function startServer() {
         if (showSSHLog) services.log("%s use only password!", Username);
         return ctx.reject(["password"]);
       }
-      if (userConnections[Username] === undefined) userConnections[Username] = 0;
+      if (typeof userConnections[Username] !== "number") userConnections[Username] = 0;
       const user = await daemonSocket.getUsers(true).then(user => user.find(user => user.Username === Username));
       let authSuccess = false;
       if (user) {
@@ -58,7 +63,6 @@ async function startServer() {
         userConnections[Username]++;
         client.on("close", () => {
           services.log("%s disconnected!", Username);
-          if (Username === "Unknown Client") return;
           userConnections[Username]--;
         });
         return ctx.accept();
@@ -67,32 +71,26 @@ async function startServer() {
       return ctx.reject();
     });
     client.on("ready", () => {
+      client.on("session", (_, reject) => reject());
       // After auth is successful, we can start accepting any port forwarding requests.
-      client.on("tcpip", (accept, _reject, info) => {
-        const { destIP, destPort } = info;
-        if (showSSHLog) services.log("%s wants to forward %s:%d", Username, destIP, destPort);
-        daemonSocket.io.emit("ssh-forward", {user: Username, ip: destIP, port: destPort});
-        const tcp = net.createConnection({port: destPort, host: destIP}), channel = accept();
+      client.on("tcpip", (accept, _reject, {destIP: hostConnect, destPort: portConnect}) => {
+        if (showSSHLog) services.log("%s wants to forward %s:%d", Username, hostConnect, portConnect);
+        daemonSocket.io.emit("ssh-forward", {user: Username, ip: hostConnect, port: portConnect});
+        const tcp = net.createConnection({port: portConnect, host: hostConnect}), channel = accept();
+
         // Close the channel if the TCP connection closes.
-        channel.once("close", () => tcp.end()); tcp.once("close", () => channel.end());
-        // Catch all on any TCP and Client errors
-        const catchErr = (err: Error, sock: net.Socket|ssh2.ServerChannel) => {
-          if (showSSHLog) services.log("%s: Catch!, ip:port: %s:%d, err: %s", Username, destIP, destPort, String(err));
-          sock.end();
-        };
-        channel.once("error", err => catchErr(err, tcp));
-        tcp.once("error", err => catchErr(err, channel));
+        channel.once("close", () => tcp.end());
+        tcp.once("close", () => channel.end());
+
+        // Catch Connections Error
+        channel.once("error", err => catchErr(tcp, err, Username, hostConnect, portConnect));
+        tcp.once("error", err => catchErr(channel, err, Username, hostConnect, portConnect));
+
         // Pipe the TCP connection to the channel vise-versa.
-        tcp.pipe(channel).pipe(tcp);
+        tcp.pipe(channel);
+        channel.pipe(tcp);
       });
     });
-    // Only port forwarding is supported, so we can reject any other kind of request.
-    client.on("session", accept => accept().once("exec", accept => {
-      const stream = accept();
-      stream.write("Port forwarding only!\n");
-      stream.exit(0);
-      stream.end();
-    }));
   });
   sshServer.listen(22, "0.0.0.0", function() {
     console.log("Listening on port %o", sshServer.address().port);
