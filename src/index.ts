@@ -44,7 +44,6 @@ async function startServer() {
           const rePass = daemonSocket.DecryptPassword(user.Password);
           if (rePass === ctx.password) {
             const currentConnections = userConnections[Username];
-            console.log("Max:", user.maxConnections, "Current:", currentConnections)
             if (user.maxConnections === 0) authSuccess = true;
             else if (currentConnections === 0) authSuccess = true;
             else {
@@ -53,7 +52,6 @@ async function startServer() {
           }
         }
       }
-      if (showSSHLog) services.log("%s: %s connections, Max: %s, authSuccess: %o", Username, userConnections[Username], user.maxConnections, authSuccess);
       if (authSuccess) {
         services.log("%s authenticated!", Username);
         userConnections[Username]++;
