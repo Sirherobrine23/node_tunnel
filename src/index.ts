@@ -10,8 +10,9 @@ const __SSH_INSTANCE = process.env.NODE_APP_INSTANCE || "0";
 const showSSHLog = process.env.SHOWSSHLOGS === "true";
 const userConnections: {[user: string]: number} = {};
 async function startServer() {
-  const bannerFile = fs.readFileSync("./Banner.html", "utf8")
-  const sshConfig: ssh2.ServerConfig = {hostKeys: [], banner: bannerFile, greeting: bannerFile};
+  const bannerFile = fs.readFileSync("./Banner.html", "utf8");
+  console.log(bannerFile);
+  const sshConfig: ssh2.ServerConfig = {hostKeys: []};
   if (!fs.existsSync(keysPath)) {
     if (__SSH_INSTANCE === "0") {
       console.error("Generating keys...");
