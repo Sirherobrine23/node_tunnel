@@ -1,6 +1,6 @@
 {
   "name": "@ofvp_project/openssh",
-  "version": "4.1.0",
+  "version": "5.0.1",
   "description": "One of the project servers, this one is for using the ssh tunnel.",
   "main": "dist/index.js",
   "private": true,
