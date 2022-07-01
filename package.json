@@ -29,6 +29,6 @@
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
-    "@types/ssh2": "^1.11.1"
+    "@types/ssh2": "^1.11.2"
   }
 }
