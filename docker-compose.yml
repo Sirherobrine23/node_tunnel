@@ -28,16 +28,14 @@ services:
   ssh:
     build: ./
     restart: always
-    depends_on: [ofvpmaneger]
+    depends_on: [mongodb]
     networks: [defaultOfvpNetwork]
     ports: [2222:22/tcp]
     volumes: [sshStorage:/data]
     environment:
-      PASSWORD_ENCRYPT: "dev"
       NODE_ENV: "development"
-      DAEMON_HOST: "http://ofvpmaneger:5000"
-      DAEMON_USERNAME: ""
-      DAEMON_PASSWORD: ""
+      MONGO_URL: "mongodb://mongodb:27017/ofvp"
+      PASSWORD_ENCRYPT: "dev"
 
   webproxy:
     image: ghcr.io/ofvp-project/webproxy:latest

@@ -2,7 +2,7 @@
 import * as net from "node:net"
 import * as fs from "node:fs"
 import * as ssh2 from "ssh2";
-import * as daemonSocket from "./socket";
+import * as db from "./db";
 import * as services from "./service";
 
 const userConnections: {[user: string]: number} = {};
@@ -43,11 +43,11 @@ async function startServer() {
         return ctx.reject(["password"]);
       }
       if (typeof userConnections[Username] !== "number") userConnections[Username] = 0;
-      const user = await daemonSocket.getUsers(true).then(user => user.find(user => user.Username === Username));
+      const user = await db.sshSchema.findOne({Username: Username}).lean();
       let authSuccess = false;
       if (user) {
         if (ctx.method === "password") {
-          const rePass = daemonSocket.DecryptPassword(user.Password);
+          const rePass = db.DecryptPassword(user.Password);
           if (rePass === ctx.password) {
             const currentConnections = userConnections[Username];
             if (user.maxConnections === 0) authSuccess = true;
@@ -75,7 +75,6 @@ async function startServer() {
       // After auth is successful, we can start accepting any port forwarding requests.
       client.on("tcpip", (accept, _reject, {destIP: hostConnect, destPort: portConnect}) => {
         if (showSSHLog) services.log("%s wants to forward %s:%d", Username, hostConnect, portConnect);
-        daemonSocket.io.emit("ssh-forward", {user: Username, ip: hostConnect, port: portConnect});
         const tcp = net.createConnection({port: portConnect, host: hostConnect}), channel = accept();
 
         // Close the channel if the TCP connection closes.
@@ -93,11 +92,12 @@ async function startServer() {
     });
   });
   sshServer.listen(22, "0.0.0.0", function() {
-    console.log("Listening on port %o", sshServer.address().port);
+    console.log("Listening on port %o", sshServer.address());
     services.startBadvpn();
   });
 }
-daemonSocket.io.once("connect", () => startServer().catch(err => {
+
+startServer().catch(err => {
   console.error(err);
   process.exit(1);
-}));
+});

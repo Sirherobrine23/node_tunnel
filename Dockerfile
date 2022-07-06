@@ -23,8 +23,8 @@ WORKDIR /app
 RUN npm i -g pm2
 ENTRYPOINT [ "node", "dist/index.js" ]
 ENV \
-  # Daemon connect
-  DAEMON_HOST="http://localhost:5000" DAEMON_USERNAME="" DAEMON_PASSWORD="" \
+  # MongoDB Server URL
+  MONGO_URL="mongodb://localhost:27017/OFVpServer" \
   # Password to decrypt users password
   PASSWORD_ENCRYPT="" \
   # Start BadVPN
