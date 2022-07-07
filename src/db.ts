@@ -72,37 +72,15 @@ type sshType = {
   Username: string,
   expireDate: Date,
   maxConnections: number,
-  Password: passwordEncrypted
+  Password: passwordEncrypted,
+  currentConnections: number
 };
 
 export const sshSchema = mongoose.model<sshType>("ssh", new mongoose.Schema<sshType, mongoose.Model<sshType, sshType, sshType, sshType>>({
-  UserID: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  Username: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  maxConnections: {
-    type: Number,
-    required: true,
-    default: 5
-  },
-  expireDate: {
-    type: Date,
-    required: true
-  },
-  Password: {
-    Encrypt: {
-      type: String,
-      required: true
-    },
-    iv: {
-      type: String,
-      required: true
-    }
-  }
+  UserID: {type: String, required: true, unique: true},
+  Username: {type: String, required: true, unique: true},
+  Password: {Encrypt: {type: String, required: true}, iv: {type: String, required: true}},
+  maxConnections: {type: Number, required: true, default: 5},
+  expireDate: {type: Date, required: true},
+  currentConnections: {type: Number, default: 0}
 }));

@@ -5,7 +5,6 @@ import * as ssh2 from "ssh2";
 import * as db from "./db";
 import * as services from "./service";
 
-const userConnections: {[user: string]: number} = {};
 const showSSHLog = process.env.SHOWSSHLOGS === "true";
 const PMINSTANCE = process.env.NODE_APP_INSTANCE || "0";
 async function getKeys() {
@@ -42,28 +41,23 @@ async function startServer() {
         if (showSSHLog) services.log("%s use only password!", Username);
         return ctx.reject(["password"]);
       }
-      if (typeof userConnections[Username] !== "number") userConnections[Username] = 0;
       const user = await db.sshSchema.findOne({Username: Username}).lean();
       let authSuccess = false;
       if (user) {
         if (ctx.method === "password") {
-          const rePass = db.DecryptPassword(user.Password);
-          if (rePass === ctx.password) {
-            const currentConnections = userConnections[Username];
+          if (db.comparePassword(ctx.password, user.Password)) {
             if (user.maxConnections === 0) authSuccess = true;
-            else if (currentConnections === 0) authSuccess = true;
-            else {
-              if (user.maxConnections > currentConnections) authSuccess = false;
-            }
+            else if (user.currentConnections === 0) authSuccess = true;
+            else if (user.maxConnections > user.currentConnections) authSuccess = false;
           }
         }
       }
       if (authSuccess) {
+        await db.sshSchema.findOneAndUpdate({UserID: user.UserID}, {$inc: {currentConnections: 1}});
         services.log("%s authenticated!", Username);
-        userConnections[Username]++;
-        client.on("close", () => {
+        client.on("close", async () => {
+          await db.sshSchema.findOneAndUpdate({UserID: user.UserID}, {$inc: {currentConnections: -1}});
           services.log("%s disconnected!", Username);
-          userConnections[Username]--;
         });
         return ctx.accept();
       }
@@ -91,6 +85,7 @@ async function startServer() {
       });
     });
   });
+  await db.sshSchema.updateMany({}, {$set: {currentConnections: 0}});
   sshServer.listen(22, "0.0.0.0", function() {
     console.log("Listening on port %o", sshServer.address());
     services.startBadvpn();
