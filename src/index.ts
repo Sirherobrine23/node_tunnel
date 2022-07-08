@@ -33,6 +33,7 @@ async function startServer() {
   sshServer.on("error", err => services.log("Server catch error: %s", String(err)));
   sshServer.on("connection", client => {
     let Username = "Unknown Client";
+    let userID = "";
     client.on("error", err => services.log("Client catch error: %s", String(err)));
     client.on("authentication", async (ctx) => {
       Username = ctx.username;
@@ -42,6 +43,7 @@ async function startServer() {
         return ctx.reject(["password"]);
       }
       const user = await db.sshSchema.findOne({Username: Username}).lean();
+      userID = user.UserID;
       let authSuccess = false;
       if (user) {
         if (ctx.method === "password") {
@@ -82,17 +84,22 @@ async function startServer() {
         // Pipe the TCP connection to the channel vise-versa.
         tcp.pipe(channel);
         channel.pipe(tcp);
+
+        // Collect data sixe transferred and update the channel statistics.
+        channel.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {traffic: {transfered: data.length}}}));
+        tcp.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {traffic: {transfered: data.length}}}));
       });
     });
   });
-  await db.sshSchema.updateMany({}, {$set: {currentConnections: 0}});
+  db.sshSchema.updateMany({}, {$set: {currentConnections: 0}}).lean().catch(err => services.log("UpdateMany error: %s", String(err)));
   sshServer.listen(22, "0.0.0.0", function() {
     console.log("Listening on port %o", sshServer.address());
     services.startBadvpn();
   });
 }
 
-startServer().catch(err => {
+db.default.connection.on("error", err => services.log("DB catch error: %s", String(err)));
+db.default.connection.on("connected", () => startServer().catch(err => {
   console.error(err);
   process.exit(1);
-});
+}));

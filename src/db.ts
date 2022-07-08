@@ -1,5 +1,6 @@
 import * as crypto from "node:crypto";
 import mongoose from "mongoose";
+export default mongoose;
 const SecretEncrypt = process.env.PASSWORD_SECERET;
 if (!SecretEncrypt) {
   console.error("PASSWORD_SECERET is not set");
@@ -67,13 +68,17 @@ export async function comparePassword(Password: string, passwordObject: password
   return password === Password;
 }
 
-type sshType = {
+export type sshType = {
   UserID: string,
   Username: string,
   expireDate: Date,
   maxConnections: number,
   Password: passwordEncrypted,
-  currentConnections: number
+  currentConnections: number,
+  traffic: {
+    restartDate: Date,
+    transfered: number
+  }
 };
 
 export const sshSchema = mongoose.model<sshType>("ssh", new mongoose.Schema<sshType, mongoose.Model<sshType, sshType, sshType, sshType>>({
@@ -82,5 +87,9 @@ export const sshSchema = mongoose.model<sshType>("ssh", new mongoose.Schema<sshT
   Password: {Encrypt: {type: String, required: true}, iv: {type: String, required: true}},
   maxConnections: {type: Number, required: true, default: 5},
   expireDate: {type: Date, required: true},
-  currentConnections: {type: Number, default: 0}
+  currentConnections: {type: Number, default: 0},
+  traffic: {
+    restartDate: {type: Date, default: () => new Date()},
+    transfered: {type: Number, default: 0}
+  }
 }));
