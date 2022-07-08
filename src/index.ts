@@ -85,9 +85,10 @@ async function startServer() {
         tcp.pipe(channel);
         channel.pipe(tcp);
 
-        // Collect data sixe transferred and update the channel statistics.
-        channel.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: data.length}}).lean());
-        tcp.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: data.length}}).lean());
+        // Collect data size transferred and update the db statistics.
+        const updatedataTraffered = (byteSize: number) => db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: byteSize}}).lean().then(() => undefined).catch(() => undefined);
+        channel.on("data", async data => await updatedataTraffered(data.length));
+        tcp.on("data", async data => await updatedataTraffered(data.length));
       });
     });
   });
