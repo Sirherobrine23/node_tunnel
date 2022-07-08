@@ -43,7 +43,7 @@ async function startServer() {
         return ctx.reject(["password"]);
       }
       const user = await db.sshSchema.findOne({Username: Username}).lean();
-      userID = user.UserID;
+      userID = user?.UserID;
       let authSuccess = false;
       if (user) {
         if (ctx.method === "password") {
@@ -86,8 +86,8 @@ async function startServer() {
         channel.pipe(tcp);
 
         // Collect data sixe transferred and update the channel statistics.
-        channel.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {traffic: {transfered: data.length}}}));
-        tcp.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {traffic: {transfered: data.length}}}));
+        channel.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: data.length}}).lean());
+        tcp.on("data", async data => await db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: data.length}}).lean());
       });
     });
   });

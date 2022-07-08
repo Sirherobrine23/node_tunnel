@@ -75,9 +75,10 @@ export type sshType = {
   maxConnections: number,
   Password: passwordEncrypted,
   currentConnections: number,
+  dateTransfered: number,
   traffic: {
     restartDate: Date,
-    transfered: number
+    
   }
 };
 
@@ -88,8 +89,8 @@ export const sshSchema = mongoose.model<sshType>("ssh", new mongoose.Schema<sshT
   maxConnections: {type: Number, required: true, default: 5},
   expireDate: {type: Date, required: true},
   currentConnections: {type: Number, default: 0},
+  dateTransfered: {type: Number, default: 0},
   traffic: {
     restartDate: {type: Date, default: () => new Date()},
-    transfered: {type: Number, default: 0}
   }
 }));
