@@ -21,7 +21,7 @@
     "url": "https://github.com/OFVp-Project/SSH-Server/issues"
   },
   "dependencies": {
-    "cron": "^2.0.0",
+    "cron": "^2.1.0",
     "mongoose": "^6.4.4",
     "pm2": "^5.2.0",
     "socket.io-client": "^4.5.1",
