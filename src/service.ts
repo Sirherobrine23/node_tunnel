@@ -3,22 +3,27 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as crypto from "node:crypto";
-
 const __TempFile = path.join(os.tmpdir(), "badvpnStart.lock");
 const showBadLog = process.env.SHOWBADVPNLOGS === "true";
-export function startBadvpn() {
-  if (fs.existsSync(__TempFile)) return;
-  fs.writeFileSync(__TempFile, "1");
+const PMINSTANCE = process.env.NODE_APP_INSTANCE || "0";
+const LogFile = path.join(os.tmpdir(), `ssh_${PMINSTANCE}.log`);
+
+export async function startBadvpn(): Promise<void> {
+  if (fs.existsSync(__TempFile)) {
+    if (PMINSTANCE !== fs.readFileSync(__TempFile, "utf8").trim()) return;
+  }
+  fs.writeFileSync(__TempFile, PMINSTANCE);
   console.log("Starting Badvpn");
   const badvpnExec = child_process.exec("badvpn --listen-addr 0.0.0.0:7300 --logger stdout --loglevel debug --max-clients 1000 --max-connections-for-client 10", {maxBuffer: Infinity});
   if (showBadLog) badvpnExec.stdout.on("data", data => process.stdout.write(data));
   if (showBadLog) badvpnExec.stderr.on("data", data => process.stdout.write(data));
-  badvpnExec.on("close", code => {
+  badvpnExec.once("close", code => {
     if (code !== 0) {
       console.log("Badvpn Closed with Code: " + code);
       fs.rmSync(__TempFile);
-      return startBadvpn()
+      return startBadvpn();
     }
+    return Promise.resolve();
   });
 }
 
@@ -50,7 +55,22 @@ export async function CreateSSHKeys(): Promise<sshHostKeys> {
   return {rsa, dsa, ecdsa, ed25519};
 }
 
-const SshInstancepm2 = process.env.NODE_APP_INSTANCE || "0";
+function formatMessage(message: string, ...args: any[]): string {
+  args = args.map(arg => {
+    if (arg instanceof Object) return JSON.stringify(arg, null, 2);
+    else if (arg instanceof Array) return JSON.stringify(arg, null, 2);
+    else if (arg instanceof Buffer) return JSON.stringify({type: "Buffer", data: arg.toString("hex")}, null, 2);
+    return arg;
+  });
+  let latestNumber = 0;
+  const result = message.replace(/%(\d+)/g, function(match, number) {
+    latestNumber = number;
+    return typeof args[number] !== 'undefined' ? args[number] : match;
+  });
+  if (args.length > latestNumber) return result+" "+args.slice(0, latestNumber).join(" ");
+  return result;
+}
+
 export function log(Message: string, ...Args: any[]) {
-  console.log(`[SSH Server %s]: ${Message}`, SshInstancepm2, ...Args);
+  fs.appendFileSync(LogFile, formatMessage(`[SSH Server %s]: %s\n`, PMINSTANCE, Message, ...Args))
 }

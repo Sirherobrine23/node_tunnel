@@ -4,9 +4,9 @@ import * as fs from "node:fs"
 import * as ssh2 from "ssh2";
 import * as db from "./db";
 import * as services from "./service";
-
 const showSSHLog = process.env.SHOWSSHLOGS === "true";
 const PMINSTANCE = process.env.NODE_APP_INSTANCE || "0";
+
 async function getKeys() {
   const keysPath = "/data/keys.json";
   if (!fs.existsSync(keysPath) && PMINSTANCE === "0") {
@@ -28,9 +28,9 @@ function catchErr(sock: net.Socket|ssh2.ServerChannel, err: Error, Username: str
 async function startServer() {
   const sshServer = new ssh2.Server({
     hostKeys: await getKeys(),
-    banner: `<span style="color: green;">Success connection</span>, <a href="https://github.com/OFVp-Project/SSH-Server">Code Source</a>`,
+    banner: process.env.BANNER||`<span style="color: green;">Success connection</span>, <a href="https://github.com/OFVp-Project/SSH-Server">Code Source</a>`
   });
-  sshServer.on("error", err => services.log("Server catch error: %s", String(err)));
+  sshServer.on("error", (err: Error) => services.log("Server catch error: %s", String(err)));
   sshServer.on("connection", client => {
     let Username = "Unknown Client";
     let userID = "";
@@ -39,7 +39,6 @@ async function startServer() {
       Username = ctx.username;
       if (ctx.method === "none") {
         // Thanks @mscdex (ssh2 Autor), Original Post: https://stackoverflow.com/a/36902453/11895959 (StackOverflow not git)
-        if (showSSHLog) services.log("%s use only password!", Username);
         return ctx.reject(["password"]);
       }
       const user = await db.sshSchema.findOne({Username: Username}).lean();
@@ -87,7 +86,7 @@ async function startServer() {
 
         // Collect data size transferred and update the db statistics.
         const updatedataTraffered = (byteSize: number) => db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: byteSize}}).lean().then(() => undefined).catch(() => undefined);
-        channel.on("data", async data => await updatedataTraffered(data.length));
+        channel.on("data", async (data: Buffer) => await updatedataTraffered(data.length));
         tcp.on("data", async data => await updatedataTraffered(data.length));
       });
     });
