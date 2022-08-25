@@ -55,22 +55,6 @@ export async function CreateSSHKeys(): Promise<sshHostKeys> {
   return {rsa, dsa, ecdsa, ed25519};
 }
 
-function formatMessage(message: string, ...args: any[]): string {
-  args = args.map(arg => {
-    if (arg instanceof Object) return JSON.stringify(arg, null, 2);
-    else if (arg instanceof Array) return JSON.stringify(arg, null, 2);
-    else if (arg instanceof Buffer) return JSON.stringify({type: "Buffer", data: arg.toString("hex")}, null, 2);
-    return arg;
-  });
-  let latestNumber = 0;
-  const result = message.replace(/%(\d+)/g, function(match, number) {
-    latestNumber = number;
-    return typeof args[number] !== 'undefined' ? args[number] : match;
-  });
-  if (args.length > latestNumber) return result+" "+args.slice(0, latestNumber).join(" ");
-  return result;
-}
-
 export function log(Message: string, ...Args: any[]) {
-  fs.appendFileSync(LogFile, formatMessage(`[SSH Server %s]: %s\n`, PMINSTANCE, Message, ...Args))
+  fs.appendFileSync(LogFile, (`[SSH Server ${PMINSTANCE}]: ${Message}`+ Args.join(" ")+"\n"));
 }

@@ -10,16 +10,21 @@ services:
     image: mongo
     restart: always
     command: "--bind_ip_all --port 27017 --noauth --quiet --logpath /dev/null"
-    networks: [defaultOfvpNetwork]
+    network_mode: host
+    # ports:
+    #   - 27017:27017/tcp
     volumes: [mongoStorage:/data/db]
+
   maneger:
     image: ghcr.io/ofvp-project/maneger:next
-    ports: [3000:3000/tcp]
-    networks: [defaultOfvpNetwork]
+    ports:
+      - 3000:3000/tcp
+      - 5000:5000/tcp
+    network_mode: host
     depends_on: [mongodb]
     environment:
       NODE_ENV: "development"
-      MONGO_URL: "mongodb://mongodb:27017/ofvp"
+      MONGODB_URL: "mongodb://127.0.0.1/ofvp"
       PASSWORD_SECERET: "dev"
       COOKIE_SECRET: "dev"
 
@@ -27,19 +32,19 @@ services:
     image: ghcr.io/ofvp-project/ssh-server:next
     build: ./
     restart: always
-    depends_on: [ofvpmaneger]
-    networks: [defaultOfvpNetwork]
+    depends_on: [maneger]
+    network_mode: host
     ports: [8022:22/tcp]
     volumes: [sshStorage:/data]
     environment:
       NODE_ENV: "development"
-      MONGO_URL: "mongodb://mongodb:27017/ofvp"
+      MONGODB_URL: "mongodb://127.0.0.1/ofvp"
       PASSWORD_SECERET: "dev"
 
   webproxy:
     image: ghcr.io/ofvp-project/webproxy:latest
     restart: always
     depends_on: [ssh]
-    networks: [defaultOfvpNetwork]
+    network_mode: host
     ports: [8080:80/tcp]
-    command: "-l 1 --ssh ssh:22"
+    command: "-l 1 --ssh 127.0.0.1:22"

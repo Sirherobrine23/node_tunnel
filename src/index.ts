@@ -41,7 +41,7 @@ async function startServer() {
         // Thanks @mscdex (ssh2 Autor), Original Post: https://stackoverflow.com/a/36902453/11895959 (StackOverflow not git)
         return ctx.reject(["password"]);
       }
-      const user = await db.sshSchema.findOne({Username: Username}).lean();
+      const user = await db.ssh.findOne({Username: Username}).lean();
       userID = user?.UserID;
       let authSuccess = false;
       if (user) {
@@ -54,10 +54,10 @@ async function startServer() {
         }
       }
       if (authSuccess) {
-        await db.sshSchema.findOneAndUpdate({UserID: user.UserID}, {$inc: {currentConnections: 1}});
+        await db.ssh.findOneAndUpdate({UserID: user.UserID}, {$inc: {currentConnections: 1}});
         services.log("%s authenticated!", Username);
         client.on("close", async () => {
-          await db.sshSchema.findOneAndUpdate({UserID: user.UserID}, {$inc: {currentConnections: -1}});
+          await db.ssh.findOneAndUpdate({UserID: user.UserID}, {$inc: {currentConnections: -1}});
           services.log("%s disconnected!", Username);
         });
         return ctx.accept();
@@ -85,13 +85,13 @@ async function startServer() {
         channel.pipe(tcp);
 
         // Collect data size transferred and update the db statistics.
-        const updatedataTraffered = (byteSize: number) => db.sshSchema.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: byteSize}}).lean().then(() => undefined).catch(() => undefined);
+        const updatedataTraffered = (byteSize: number) => db.ssh.findOneAndUpdate({UserID: userID}, {$inc: {dateTransfered: byteSize}}).lean().then(() => undefined).catch(() => undefined);
         channel.on("data", async (data: Buffer) => await updatedataTraffered(data.length));
         tcp.on("data", async data => await updatedataTraffered(data.length));
       });
     });
   });
-  db.sshSchema.updateMany({}, {$set: {currentConnections: 0}}).lean().catch(err => services.log("UpdateMany error: %s", String(err)));
+  db.ssh.updateMany({}, {$set: {currentConnections: 0}}).lean().catch(err => services.log("UpdateMany error: %s", String(err)));
   sshServer.listen(22, "0.0.0.0", function() {
     console.log("Listening on port %o", sshServer.address());
     services.startBadvpn();

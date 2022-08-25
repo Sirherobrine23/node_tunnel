@@ -1,61 +1,31 @@
 import * as crypto from "node:crypto";
 import mongoose from "mongoose";
 export default mongoose;
-const SecretEncrypt = process.env.PASSWORD_SECERET;
-if (!SecretEncrypt) {
-  console.error("PASSWORD_SECERET is not set");
+if (!process.env.MONGODB_URL) {
+  console.error("MONGODB_URL is not set");
   process.exit(1);
 }
-
-if (!!process.env.MongoDB_URL) {
-  console.warn("MongoDB_URL is deprecated, use MONGO_URL instead");
-  process.env.MONGO_URL = process.env.MongoDB_URL;
-  delete process.env.MongoDB_URL;
-} else if (!process.env.MONGO_URL) {
-  console.error("MONGO_URL is not set");
+mongoose.connection.on("error", (err: Error) => {
+  console.log(err);
   process.exit(1);
-}
-
-let { MONGO_URL } = process.env;
-const urlParse = new URL(MONGO_URL);
-if (urlParse.pathname === "/"||!urlParse.pathname) {
-  MONGO_URL = ""; MONGO_URL += urlParse.protocol + "//"; MONGO_URL += urlParse.host;
-  if (urlParse.username) MONGO_URL += urlParse.username; if (urlParse.password) MONGO_URL += ":" + urlParse.password;
-  if (!!urlParse.username || !!urlParse.password) MONGO_URL += "@";
-  MONGO_URL += "/ofvp";
-}
-mongoose.connect(MONGO_URL, {
+});
+mongoose.connect(process.env.MONGODB_URL, {
   autoIndex: true,
   compressors: "zlib",
   serializeFunctions: true,
   zlibCompressionLevel: 9
 });
 
-export type passwordEncrypted = {
-  Encrypt: string,
-  iv: string
-};
+const SecretEncrypt = process.env.PASSWORD_SECERET;
+if (!SecretEncrypt) {
+  console.error("PASSWORD_SECERET is not set");
+  process.exit(1);
+}
 
-/**
- * @param password - plain text password to encrypt
- */
-export function EncryptPassword(Password: string): passwordEncrypted {
-  const iv = crypto.randomBytes(16);
-  const key = crypto.scryptSync(SecretEncrypt, "salt", 24);
-  const cipher = crypto.createCipheriv("aes-192-cbc", key, iv);
-  return {
-    Encrypt: cipher.update(Password, "utf8", "hex") + cipher.final("hex"),
-    iv: iv.toString("hex"),
-  }
-};
-
-/**
- * Return String with password decrypt.
- * @param password
- * @returns {string}
- */
-export function DecryptPassword(passwordObject: passwordEncrypted): string {
-  const {iv, Encrypt} = passwordObject;
+export function DecryptPassword(Passwordbase64: string): string {
+  const passwordMatch = Buffer.from(Passwordbase64, "base64").toString("utf8").match(/(.*)::(SHs|OfV)::(.*)/);
+  if (!passwordMatch) throw new Error("Invalid password");
+  const [, iv, ,Encrypt] = passwordMatch;
   if (!iv) throw new Error("iv blank");
   if (!Encrypt) throw new Error("Encrypt blank");
   const key = crypto.scryptSync(SecretEncrypt, "salt", 24);
@@ -63,34 +33,50 @@ export function DecryptPassword(passwordObject: passwordEncrypted): string {
   return decipher.update(Encrypt, "hex", "utf8") + decipher.final("utf8");
 };
 
-export async function comparePassword(Password: string, passwordObject: passwordEncrypted): Promise<boolean> {
-  const password = DecryptPassword(passwordObject);
-  return password === Password;
+export function comparePassword(Password: string, Passwordbase64: string): boolean {
+  return Password === DecryptPassword(Passwordbase64);
 }
 
 export type sshType = {
   UserID: string,
   Username: string,
-  expireDate: Date,
+  Password: string,
   maxConnections: number,
-  Password: passwordEncrypted,
   currentConnections: number,
-  dateTransfered: number,
-  traffic: {
-    restartDate: Date,
-    
+  dateTransferedHistoric?: {
+    [year: string]: {
+      [month: string]: number
+    }
   }
 };
 
-export const sshSchema = mongoose.model<sshType>("ssh", new mongoose.Schema<sshType, mongoose.Model<sshType, sshType, sshType, sshType>>({
-  UserID: {type: String, required: true, unique: true},
-  Username: {type: String, required: true, unique: true},
-  Password: {Encrypt: {type: String, required: true}, iv: {type: String, required: true}},
-  maxConnections: {type: Number, required: true, default: 5},
-  expireDate: {type: Date, required: true},
-  currentConnections: {type: Number, default: 0},
-  dateTransfered: {type: Number, default: 0},
-  traffic: {
-    restartDate: {type: Date, default: () => new Date()},
+export const ssh = mongoose.model<sshType>("ssh", new mongoose.Schema<sshType, mongoose.Model<sshType, sshType, sshType, sshType>>({
+  UserID: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  Username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  Password: {
+    type: String,
+    required: true
+  },
+  maxConnections: {
+    type: Number,
+    required: true,
+    default: 6
+  },
+  currentConnections: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  dateTransferedHistoric: {
+    type: Object,
+    default: () => ({[(new Date()).getFullYear()]: {[(new Date()).getMonth()+1]: 0}})
   }
 }));
