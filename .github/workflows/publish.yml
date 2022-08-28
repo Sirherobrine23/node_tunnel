@@ -1,41 +1,18 @@
 name: Publish docker image
 on:
-  # Publish next docker image on push to main branch
   push:
     branches:
       - main
-    paths:
-      - "docker-compose.yml"
-      - "package*.json"
-      - ".github/**/*"
-      - "Dockerfile"
-      - "README.md"
-      - "src/**/*"
-
-  # To publish release and Docker image, we need to trigger the workflow
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Package version, dont includes 'v' or any other label"
-        required: true
-        type: "string"
-      publish_release:
-        description: "Create tag on publish package"
-        required: false
-        default: true
-        type: "boolean"
+  release:
+    types:
+      - released
 
 jobs:
   releaseNext:
     runs-on: ubuntu-latest
-    name: Publish latest
-    environment:
-      name: Docker_Latest
-      url: "https://github.com/OFVp-Project/SSH-Server/pkgs/container/ssh-server"
+    name: Publish docker image
     steps:
       - uses: actions/checkout@v3.0.2
-        with:
-          submodules: true
 
       - name: Setup QEMU to Docker
         uses: docker/setup-qemu-action@v2
@@ -57,53 +34,5 @@ jobs:
           push: true
           platforms: ${{ secrets.DOCKER_TARGERTS }}
           cache-from: type=gha,scope=${{ github.ref }}_ofvp_sshserver_${{ github.repository }}
-          cache-to: type=gha,mode=max,scope=${{ github.ref }}_ofvp_sshserver_${{ github.repository }}
-          tags: ghcr.io/ofvp-project/ssh-server:next
-
-  releaseImage:
-    runs-on: ubuntu-latest
-    name: Publish release
-    if: ${{ github.event.inputs.publish_release }}
-    environment:
-      name: Docker_Version
-      url: "https://github.com/OFVp-Project/SSH-Server/pkgs/container/ssh-server"
-    steps:
-      - uses: actions/checkout@v3.0.2
-        with:
-          submodules: true
-
-      - name: Setup QEMU to Docker
-        uses: docker/setup-qemu-action@v2
-
-      - name: Setup Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login into registry Github Packages
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Push image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: true
-          platforms: ${{ secrets.DOCKER_TARGERTS }}
-          cache-from: type=gha,scope=${{ github.ref }}_ofvp_sshserver_${{ github.repository }}
-          cache-to: type=gha,mode=max,scope=${{ github.ref }}_ofvp_sshserver_${{ github.repository }}
-          tags: |
-            ghcr.io/ofvp-project/ssh-server:latest
-            ghcr.io/ofvp-project/ssh-server:v${{ github.event.inputs.version }}
-
-      - name: Create release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: v${{ github.event.inputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          generate_release_notes: true
-          draft: false
+          cache-to: type=gha,mode=max,scope=${{ github.ref }}_sshserver_${{ github.repository }}
+          tags: ghcr.io/sirherobrine23/nodesshserver:${{ github.event.release && 'latest' || 'next' }}

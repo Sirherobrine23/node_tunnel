@@ -3,29 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as crypto from "node:crypto";
-const __TempFile = path.join(os.tmpdir(), "badvpnStart.lock");
-const showBadLog = process.env.SHOWBADVPNLOGS === "true";
-const PMINSTANCE = process.env.NODE_APP_INSTANCE || "0";
-const LogFile = path.join(os.tmpdir(), `ssh_${PMINSTANCE}.log`);
-
-export async function startBadvpn(): Promise<void> {
-  if (fs.existsSync(__TempFile)) {
-    if (PMINSTANCE !== fs.readFileSync(__TempFile, "utf8").trim()) return;
-  }
-  fs.writeFileSync(__TempFile, PMINSTANCE);
-  console.log("Starting Badvpn");
-  const badvpnExec = child_process.exec("badvpn --listen-addr 0.0.0.0:7300 --logger stdout --loglevel debug --max-clients 1000 --max-connections-for-client 10", {maxBuffer: Infinity});
-  if (showBadLog) badvpnExec.stdout.on("data", data => process.stdout.write(data));
-  if (showBadLog) badvpnExec.stderr.on("data", data => process.stdout.write(data));
-  badvpnExec.once("close", code => {
-    if (code !== 0) {
-      console.log("Badvpn Closed with Code: " + code);
-      fs.rmSync(__TempFile);
-      return startBadvpn();
-    }
-    return Promise.resolve();
-  });
-}
+const LogFile = path.join(os.tmpdir(), "nodessh.log");
 
 function internalSSHKeygen(crypt: "rsa"|"dsa"|"ecdsa"|"ed25519"): Promise<{priv: string, pub: string}> {
   const randomTmpFile = path.join(os.tmpdir(), "ssh-keygen-tmp-" + crypto.randomBytes(32).toString("hex"));
@@ -56,5 +34,5 @@ export async function CreateSSHKeys(): Promise<sshHostKeys> {
 }
 
 export function log(Message: string, ...Args: any[]) {
-  fs.appendFileSync(LogFile, (`[SSH Server ${PMINSTANCE}]: ${Message}`+ Args.join(" ")+"\n"));
+  fs.appendFileSync(LogFile, (`[SSH Server]: ${Message}`+ Args.join(" ")+"\n"));
 }

@@ -1,35 +1,31 @@
 {
-  "name": "@ofvp_project/ssh-server",
+  "name": "@sirherobrine23/sshserver",
   "version": "5.0.2",
   "description": "One of the project servers, this one is for using the ssh tunnel.",
   "main": "dist/index.js",
   "private": true,
   "author": "ofvp_project",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://github.com/OFVp-Project/SSH-Server#readme",
+  "homepage": "https://github.com/Sirherobrine23/nodeSshServer#readme",
   "scripts": {
     "build": "tsc"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OFVp-Project/SSH-Server.git"
+    "url": "git+https://github.com/Sirherobrine23/nodeSshServer.git"
   },
-  "keywords": [
-    "ofvp_project"
-  ],
+  "keywords": [],
   "bugs": {
-    "url": "https://github.com/OFVp-Project/SSH-Server/issues"
+    "url": "https://github.com/Sirherobrine23/nodeSshServer/issues"
   },
   "dependencies": {
     "cron": "^2.1.0",
     "mongoose": "^6.5.3",
-    "pm2": "^5.2.0",
-    "socket.io-client": "^4.5.1",
-    "ssh2": "^1.11.0",
-    "typescript": "^4.8.2"
+    "ssh2": "^1.11.0"
   },
   "devDependencies": {
     "@types/node": "^18.7.13",
-    "@types/ssh2": "^1.11.5"
+    "@types/ssh2": "^1.11.5",
+    "typescript": "^4.8.2"
   }
 }
