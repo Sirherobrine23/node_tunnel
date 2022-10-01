@@ -24,7 +24,7 @@
     "ssh2": "^1.11.0"
   },
   "devDependencies": {
-    "@types/node": "^18.7.13",
+    "@types/node": "^18.7.23",
     "@types/ssh2": "^1.11.6",
     "typescript": "^4.8.2"
   }
