@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "cron": "^2.1.0",
-    "mongoose": "^6.6.3",
+    "mongoose": "^6.7.0",
     "ssh2": "^1.11.0"
   },
   "devDependencies": {
