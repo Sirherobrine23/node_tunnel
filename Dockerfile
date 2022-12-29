@@ -7,7 +7,8 @@ LABEL org.opencontainers.image.title="OFVp SSH Server" \
 
 # Install core packages
 ARG DEBIAN_FRONTEND="noninteractive"
-RUN apt update && apt install -y wget curl procps && wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash && apt install -y openssh-client --no-install-recommends
+RUN apt update && apt install -y wget curl procps && apt install -y openssh-client --no-install-recommends
+RUN wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
 
 # Setup Project
 EXPOSE 22/tcp
